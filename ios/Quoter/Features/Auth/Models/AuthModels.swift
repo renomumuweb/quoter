@@ -8,6 +8,16 @@ struct AppUser: Codable, Identifiable, Equatable {
     let role: String
     let status: String
     let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case companyID = "companyId"
+        case email
+        case name
+        case role
+        case status
+        case createdAt
+    }
 }
 
 struct AuthResponse: Codable {

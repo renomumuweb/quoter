@@ -32,7 +32,17 @@ final class APIClient {
     private let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+            if let date = APIISO8601DateParser.parse(rawValue) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid ISO8601 date: \(rawValue)"
+            )
+        }
         return decoder
     }()
 
@@ -100,7 +110,7 @@ final class APIClient {
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
-            throw APIError.decodingFailed
+            throw APIError.decodingFailed(error.localizedDescription)
         }
     }
 }
@@ -110,4 +120,47 @@ struct EmptyResponse: Decodable {}
 
 private struct APIErrorPayload: Decodable {
     let error: String
+}
+
+private enum APIISO8601DateParser {
+    private static let withFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let withoutFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    static func parse(_ rawValue: String) -> Date? {
+        if let date = withFractionalSeconds.date(from: rawValue) {
+            return date
+        }
+        if let date = withoutFractionalSeconds.date(from: rawValue) {
+            return date
+        }
+        if let normalized = normalizeFractionalSeconds(rawValue),
+           let date = withFractionalSeconds.date(from: normalized) {
+            return date
+        }
+        return nil
+    }
+
+    private static func normalizeFractionalSeconds(_ value: String) -> String? {
+        guard let dot = value.firstIndex(of: ".") else { return nil }
+        let fractionStart = value.index(after: dot)
+        let suffix = value[fractionStart...]
+        guard let timezoneIndexInSuffix = suffix.firstIndex(where: { $0 == "Z" || $0 == "+" || $0 == "-" }) else {
+            return nil
+        }
+
+        let fraction = suffix[..<timezoneIndexInSuffix]
+        guard !fraction.isEmpty else { return nil }
+
+        let padded = String(fraction.prefix(3)).padding(toLength: 3, withPad: "0", startingAt: 0)
+        return String(value[..<fractionStart]) + padded + String(suffix[timezoneIndexInSuffix...])
+    }
 }

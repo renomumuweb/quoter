@@ -5,7 +5,7 @@ enum APIError: LocalizedError, Equatable {
     case invalidResponse
     case unauthorized
     case server(message: String, statusCode: Int)
-    case decodingFailed
+    case decodingFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -17,8 +17,8 @@ enum APIError: LocalizedError, Equatable {
             return "Your session has expired. Please sign in again."
         case let .server(message, _):
             return message
-        case .decodingFailed:
-            return "The server response could not be read."
+        case let .decodingFailed(message):
+            return "The server response could not be read. \(message)"
         }
     }
 }

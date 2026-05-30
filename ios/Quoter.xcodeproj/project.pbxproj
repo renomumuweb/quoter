@@ -1,0 +1,464 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000000000000000000001 /* QuoterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* QuoterApp.swift */; };
+		B00000000000000000000002 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* AppState.swift */; };
+		B00000000000000000000003 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* AppRouter.swift */; };
+		B00000000000000000000004 /* DecimalFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000004 /* DecimalFormatter.swift */; };
+		B00000000000000000000005 /* DateFormatterProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* DateFormatterProvider.swift */; };
+		B00000000000000000000006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* SettingsView.swift */; };
+		B00000000000000000000007 /* LocalDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* LocalDraftStore.swift */; };
+		B00000000000000000000008 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* KeychainStore.swift */; };
+		B00000000000000000000009 /* DrawingWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* DrawingWorkspaceView.swift */; };
+		B00000000000000000000010 /* DrawingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* DrawingModels.swift */; };
+		B00000000000000000000011 /* ContractPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* ContractPreviewView.swift */; };
+		B00000000000000000000012 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* TokenStore.swift */; };
+		B00000000000000000000013 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* SessionManager.swift */; };
+		B00000000000000000000014 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* ShareSheet.swift */; };
+		B00000000000000000000015 /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* PDFPreviewView.swift */; };
+		B00000000000000000000016 /* PDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000016 /* PDFGenerator.swift */; };
+		B00000000000000000000017 /* ProductMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* ProductMatcher.swift */; };
+		B00000000000000000000018 /* CanvasCoordinateMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000018 /* CanvasCoordinateMapper.swift */; };
+		B00000000000000000000019 /* ProductObjectOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* ProductObjectOverlayView.swift */; };
+		B00000000000000000000020 /* PencilCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000020 /* PencilCanvasView.swift */; };
+		B00000000000000000000021 /* ObjectControlHandlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000021 /* ObjectControlHandlesView.swift */; };
+		B00000000000000000000022 /* CanvasGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000022 /* CanvasGridView.swift */; };
+		B00000000000000000000023 /* AnnotationOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000023 /* AnnotationOverlayView.swift */; };
+		B00000000000000000000024 /* PaginatedResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000024 /* PaginatedResponse.swift */; };
+		B00000000000000000000025 /* Money.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000025 /* Money.swift */; };
+		B00000000000000000000026 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000026 /* APIError.swift */; };
+		B00000000000000000000027 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000027 /* APIClient.swift */; };
+		B00000000000000000000028 /* CustomerListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000028 /* CustomerListView.swift */; };
+		B00000000000000000000029 /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000029 /* ProjectListView.swift */; };
+		B00000000000000000000030 /* ProjectModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000030 /* ProjectModels.swift */; };
+		B00000000000000000000031 /* CustomerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000031 /* CustomerModels.swift */; };
+		B00000000000000000000032 /* ProductCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000032 /* ProductCatalogView.swift */; };
+		B00000000000000000000033 /* QuotePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000033 /* QuotePreviewView.swift */; };
+		B00000000000000000000034 /* ProductModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000034 /* ProductModels.swift */; };
+		B00000000000000000000035 /* QuoteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000035 /* QuoteModels.swift */; };
+		B00000000000000000000036 /* QuoteCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000036 /* QuoteCalculator.swift */; };
+		B00000000000000000000037 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000037 /* LoginView.swift */; };
+		B00000000000000000000038 /* AuthRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000038 /* AuthRootView.swift */; };
+		B00000000000000000000039 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000039 /* RegisterView.swift */; };
+		B00000000000000000000040 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000040 /* AuthViewModel.swift */; };
+		B00000000000000000000041 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000041 /* AuthService.swift */; };
+		B00000000000000000000042 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000042 /* AuthModels.swift */; };
+		B00000000000000000000903 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000903 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000006 /* Quoter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quoter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00000000000000000000001 /* QuoterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/QuoterApp.swift; sourceTree = "<group>"; };
+		F00000000000000000000002 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppState.swift; sourceTree = "<group>"; };
+		F00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppRouter.swift; sourceTree = "<group>"; };
+		F00000000000000000000004 /* DecimalFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Utils/DecimalFormatter.swift; sourceTree = "<group>"; };
+		F00000000000000000000005 /* DateFormatterProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Utils/DateFormatterProvider.swift; sourceTree = "<group>"; };
+		F00000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Settings/Views/SettingsView.swift; sourceTree = "<group>"; };
+		F00000000000000000000007 /* LocalDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/LocalDraftStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000008 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/KeychainStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000009 /* DrawingWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Views/DrawingWorkspaceView.swift; sourceTree = "<group>"; };
+		F00000000000000000000010 /* DrawingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Models/DrawingModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* ContractPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Contracts/Views/ContractPreviewView.swift; sourceTree = "<group>"; };
+		F00000000000000000000012 /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Auth/TokenStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000013 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Auth/SessionManager.swift; sourceTree = "<group>"; };
+		F00000000000000000000014 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Contracts/PDF/ShareSheet.swift; sourceTree = "<group>"; };
+		F00000000000000000000015 /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Contracts/PDF/PDFPreviewView.swift; sourceTree = "<group>"; };
+		F00000000000000000000016 /* PDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Contracts/PDF/PDFGenerator.swift; sourceTree = "<group>"; };
+		F00000000000000000000017 /* ProductMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Logic/ProductMatcher.swift; sourceTree = "<group>"; };
+		F00000000000000000000018 /* CanvasCoordinateMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Logic/CanvasCoordinateMapper.swift; sourceTree = "<group>"; };
+		F00000000000000000000019 /* ProductObjectOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Components/ProductObjectOverlayView.swift; sourceTree = "<group>"; };
+		F00000000000000000000020 /* PencilCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Components/PencilCanvasView.swift; sourceTree = "<group>"; };
+		F00000000000000000000021 /* ObjectControlHandlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Components/ObjectControlHandlesView.swift; sourceTree = "<group>"; };
+		F00000000000000000000022 /* CanvasGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Components/CanvasGridView.swift; sourceTree = "<group>"; };
+		F00000000000000000000023 /* AnnotationOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Drawing/Components/AnnotationOverlayView.swift; sourceTree = "<group>"; };
+		F00000000000000000000024 /* PaginatedResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Models/PaginatedResponse.swift; sourceTree = "<group>"; };
+		F00000000000000000000025 /* Money.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Models/Money.swift; sourceTree = "<group>"; };
+		F00000000000000000000026 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/API/APIError.swift; sourceTree = "<group>"; };
+		F00000000000000000000027 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/API/APIClient.swift; sourceTree = "<group>"; };
+		F00000000000000000000028 /* CustomerListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Customers/Views/CustomerListView.swift; sourceTree = "<group>"; };
+		F00000000000000000000029 /* ProjectListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Projects/Views/ProjectListView.swift; sourceTree = "<group>"; };
+		F00000000000000000000030 /* ProjectModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Projects/Models/ProjectModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000031 /* CustomerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Customers/Models/CustomerModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000032 /* ProductCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Products/Views/ProductCatalogView.swift; sourceTree = "<group>"; };
+		F00000000000000000000033 /* QuotePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Quotes/Views/QuotePreviewView.swift; sourceTree = "<group>"; };
+		F00000000000000000000034 /* ProductModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Products/Models/ProductModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000035 /* QuoteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Quotes/Models/QuoteModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000036 /* QuoteCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Quotes/Logic/QuoteCalculator.swift; sourceTree = "<group>"; };
+		F00000000000000000000037 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Views/LoginView.swift; sourceTree = "<group>"; };
+		F00000000000000000000038 /* AuthRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Views/AuthRootView.swift; sourceTree = "<group>"; };
+		F00000000000000000000039 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Views/RegisterView.swift; sourceTree = "<group>"; };
+		F00000000000000000000040 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/ViewModels/AuthViewModel.swift; sourceTree = "<group>"; };
+		F00000000000000000000041 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Services/AuthService.swift; sourceTree = "<group>"; };
+		F00000000000000000000042 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Models/AuthModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000900 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Resources/Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000901 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Resources/Config/Debug.xcconfig; sourceTree = "<group>"; };
+		F00000000000000000000902 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Resources/Config/Release.xcconfig; sourceTree = "<group>"; };
+		F00000000000000000000903 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000003 /* Quoter */,
+				A00000000000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000006 /* Quoter.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000003 /* Quoter */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000001 /* QuoterApp.swift */,
+				F00000000000000000000002 /* AppState.swift */,
+				F00000000000000000000003 /* AppRouter.swift */,
+				F00000000000000000000004 /* DecimalFormatter.swift */,
+				F00000000000000000000005 /* DateFormatterProvider.swift */,
+				F00000000000000000000006 /* SettingsView.swift */,
+				F00000000000000000000007 /* LocalDraftStore.swift */,
+				F00000000000000000000008 /* KeychainStore.swift */,
+				F00000000000000000000009 /* DrawingWorkspaceView.swift */,
+				F00000000000000000000010 /* DrawingModels.swift */,
+				F00000000000000000000011 /* ContractPreviewView.swift */,
+				F00000000000000000000012 /* TokenStore.swift */,
+				F00000000000000000000013 /* SessionManager.swift */,
+				F00000000000000000000014 /* ShareSheet.swift */,
+				F00000000000000000000015 /* PDFPreviewView.swift */,
+				F00000000000000000000016 /* PDFGenerator.swift */,
+				F00000000000000000000017 /* ProductMatcher.swift */,
+				F00000000000000000000018 /* CanvasCoordinateMapper.swift */,
+				F00000000000000000000019 /* ProductObjectOverlayView.swift */,
+				F00000000000000000000020 /* PencilCanvasView.swift */,
+				F00000000000000000000021 /* ObjectControlHandlesView.swift */,
+				F00000000000000000000022 /* CanvasGridView.swift */,
+				F00000000000000000000023 /* AnnotationOverlayView.swift */,
+				F00000000000000000000024 /* PaginatedResponse.swift */,
+				F00000000000000000000025 /* Money.swift */,
+				F00000000000000000000026 /* APIError.swift */,
+				F00000000000000000000027 /* APIClient.swift */,
+				F00000000000000000000028 /* CustomerListView.swift */,
+				F00000000000000000000029 /* ProjectListView.swift */,
+				F00000000000000000000030 /* ProjectModels.swift */,
+				F00000000000000000000031 /* CustomerModels.swift */,
+				F00000000000000000000032 /* ProductCatalogView.swift */,
+				F00000000000000000000033 /* QuotePreviewView.swift */,
+				F00000000000000000000034 /* ProductModels.swift */,
+				F00000000000000000000035 /* QuoteModels.swift */,
+				F00000000000000000000036 /* QuoteCalculator.swift */,
+				F00000000000000000000037 /* LoginView.swift */,
+				F00000000000000000000038 /* AuthRootView.swift */,
+				F00000000000000000000039 /* RegisterView.swift */,
+				F00000000000000000000040 /* AuthViewModel.swift */,
+				F00000000000000000000041 /* AuthService.swift */,
+				F00000000000000000000042 /* AuthModels.swift */,
+				F00000000000000000000900 /* Info.plist */,
+				F00000000000000000000901 /* Debug.xcconfig */,
+				F00000000000000000000902 /* Release.xcconfig */,
+				F00000000000000000000903 /* Assets.xcassets */,
+			);
+			path = Quoter;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000005 /* Quoter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000013 /* Build configuration list for PBXNativeTarget "Quoter" */;
+			buildPhases = (
+				A00000000000000000000007 /* Sources */,
+				A00000000000000000000008 /* Frameworks */,
+				A00000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Quoter;
+			productName = Quoter;
+			productReference = A00000000000000000000006 /* Quoter.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000004 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A00000000000000000000005 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A00000000000000000000010 /* Build configuration list for PBXProject "Quoter" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000001;
+			productRefGroup = A00000000000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000005 /* Quoter */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000903 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* QuoterApp.swift in Sources */,
+				B00000000000000000000002 /* AppState.swift in Sources */,
+				B00000000000000000000003 /* AppRouter.swift in Sources */,
+				B00000000000000000000004 /* DecimalFormatter.swift in Sources */,
+				B00000000000000000000005 /* DateFormatterProvider.swift in Sources */,
+				B00000000000000000000006 /* SettingsView.swift in Sources */,
+				B00000000000000000000007 /* LocalDraftStore.swift in Sources */,
+				B00000000000000000000008 /* KeychainStore.swift in Sources */,
+				B00000000000000000000009 /* DrawingWorkspaceView.swift in Sources */,
+				B00000000000000000000010 /* DrawingModels.swift in Sources */,
+				B00000000000000000000011 /* ContractPreviewView.swift in Sources */,
+				B00000000000000000000012 /* TokenStore.swift in Sources */,
+				B00000000000000000000013 /* SessionManager.swift in Sources */,
+				B00000000000000000000014 /* ShareSheet.swift in Sources */,
+				B00000000000000000000015 /* PDFPreviewView.swift in Sources */,
+				B00000000000000000000016 /* PDFGenerator.swift in Sources */,
+				B00000000000000000000017 /* ProductMatcher.swift in Sources */,
+				B00000000000000000000018 /* CanvasCoordinateMapper.swift in Sources */,
+				B00000000000000000000019 /* ProductObjectOverlayView.swift in Sources */,
+				B00000000000000000000020 /* PencilCanvasView.swift in Sources */,
+				B00000000000000000000021 /* ObjectControlHandlesView.swift in Sources */,
+				B00000000000000000000022 /* CanvasGridView.swift in Sources */,
+				B00000000000000000000023 /* AnnotationOverlayView.swift in Sources */,
+				B00000000000000000000024 /* PaginatedResponse.swift in Sources */,
+				B00000000000000000000025 /* Money.swift in Sources */,
+				B00000000000000000000026 /* APIError.swift in Sources */,
+				B00000000000000000000027 /* APIClient.swift in Sources */,
+				B00000000000000000000028 /* CustomerListView.swift in Sources */,
+				B00000000000000000000029 /* ProjectListView.swift in Sources */,
+				B00000000000000000000030 /* ProjectModels.swift in Sources */,
+				B00000000000000000000031 /* CustomerModels.swift in Sources */,
+				B00000000000000000000032 /* ProductCatalogView.swift in Sources */,
+				B00000000000000000000033 /* QuotePreviewView.swift in Sources */,
+				B00000000000000000000034 /* ProductModels.swift in Sources */,
+				B00000000000000000000035 /* QuoteModels.swift in Sources */,
+				B00000000000000000000036 /* QuoteCalculator.swift in Sources */,
+				B00000000000000000000037 /* LoginView.swift in Sources */,
+				B00000000000000000000038 /* AuthRootView.swift in Sources */,
+				B00000000000000000000039 /* RegisterView.swift in Sources */,
+				B00000000000000000000040 /* AuthViewModel.swift in Sources */,
+				B00000000000000000000041 /* AuthService.swift in Sources */,
+				B00000000000000000000042 /* AuthModels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A00000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A00000000000000000000014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F00000000000000000000901 /* Debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Quoter/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		A00000000000000000000015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F00000000000000000000902 /* Release.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Quoter/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000010 /* Build configuration list for PBXProject "Quoter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000011 /* Debug */,
+				A00000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000013 /* Build configuration list for PBXNativeTarget "Quoter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000014 /* Debug */,
+				A00000000000000000000015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000004 /* Project object */;
+}

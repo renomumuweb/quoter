@@ -1,0 +1,20 @@
+.gocache/
+.gopath/
+
+# Go
+backend/bin/
+backend/tmp/
+
+# Docker/Postgres local data
+*.local
+
+# Xcode
+ios/DerivedData/
+ios/*.xcworkspace/
+ios/Quoter.xcodeproj/xcuserdata/
+ios/Quoter.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate
+
+# macOS / Windows
+.DS_Store
+Thumbs.db

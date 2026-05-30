@@ -1,0 +1,53 @@
+openapi: 3.1.0
+info:
+  title: Quoter API
+  version: 0.1.0
+  description: Self-hosted Go/Gin API for the Quoter iPad app.
+servers:
+  - url: http://localhost:8080/api/v1
+paths:
+  /auth/register:
+    post:
+      summary: Register a company owner account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                company_name: { type: string }
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10 }
+      responses:
+        "200": { description: Auth tokens and user profile }
+  /auth/login:
+    post:
+      summary: Login with email and password.
+      responses:
+        "200": { description: Auth tokens and user profile }
+  /auth/refresh:
+    post:
+      summary: Rotate a refresh token and issue a new access token.
+      responses:
+        "200": { description: New token pair }
+  /auth/logout:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Revoke a refresh token.
+      responses:
+        "204": { description: Logged out }
+  /auth/me:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Return the current user and company.
+      responses:
+        "200": { description: Current session }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

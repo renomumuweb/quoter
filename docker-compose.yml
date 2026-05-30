@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: quoter
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - quoter_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d quoter"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      APP_ENV: development
+      API_ADDR: :8080
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/quoter?sslmode=disable
+      JWT_SECRET: local-dev-secret-change-before-any-real-deploy
+      RUN_MIGRATIONS: "true"
+      MIGRATIONS_DIR: /app/migrations
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  quoter_postgres:

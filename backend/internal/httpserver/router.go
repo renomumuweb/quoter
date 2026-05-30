@@ -92,9 +92,9 @@ func registerScaffoldRoutes(router *gin.RouterGroup) {
 	router.PUT("/projects/:id", notReady("projects.update", "Phase 5"))
 	router.DELETE("/projects/:id", notReady("projects.delete", "Phase 5"))
 
-	router.GET("/projects/:projectId/drawing", notReady("drawing.get", "Phase 6"))
-	router.PUT("/projects/:projectId/drawing", notReady("drawing.save", "Phase 6"))
-	router.POST("/projects/:projectId/drawing/upload-url", notReady("drawing.upload_url", "Phase 6"))
+	router.GET("/projects/:id/drawing", notReady("drawing.get", "Phase 6"))
+	router.PUT("/projects/:id/drawing", notReady("drawing.save", "Phase 6"))
+	router.POST("/projects/:id/drawing/upload-url", notReady("drawing.upload_url", "Phase 6"))
 	router.POST("/drawing-objects", notReady("drawing_objects.create", "Phase 6"))
 	router.PUT("/drawing-objects/:id", notReady("drawing_objects.update", "Phase 6"))
 	router.DELETE("/drawing-objects/:id", notReady("drawing_objects.delete", "Phase 6"))
@@ -108,12 +108,12 @@ func registerScaffoldRoutes(router *gin.RouterGroup) {
 	router.GET("/product-categories", notReady("product_categories.list", "Phase 7"))
 	router.GET("/brands", notReady("brands.list", "Phase 7"))
 
-	router.POST("/projects/:projectId/quotes/preview", notReady("quotes.preview", "Phase 8"))
-	router.POST("/projects/:projectId/quotes", notReady("quotes.create", "Phase 8"))
+	router.POST("/projects/:id/quotes/preview", notReady("quotes.preview", "Phase 8"))
+	router.POST("/projects/:id/quotes", notReady("quotes.create", "Phase 8"))
 	router.GET("/quotes/:id", notReady("quotes.get", "Phase 8"))
 	router.POST("/quotes/:id/confirm", notReady("quotes.confirm", "Phase 8"))
 
-	router.POST("/quotes/:quoteId/contracts", notReady("contracts.create", "Phase 9"))
+	router.POST("/quotes/:id/contracts", notReady("contracts.create", "Phase 9"))
 	router.GET("/contracts/:id", notReady("contracts.get", "Phase 9"))
 	router.POST("/contracts/:id/pdf", notReady("contracts.pdf", "Phase 9"))
 	router.GET("/contracts/:id/download-url", notReady("contracts.download_url", "Phase 9"))

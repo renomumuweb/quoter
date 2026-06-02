@@ -1,21 +1,289 @@
 import SwiftUI
 
 struct ProjectListView: View {
+    @EnvironmentObject private var appState: AppState
+    @StateObject private var viewModel = ProjectListViewModel()
+    @State private var showingNewProject = false
+    @State private var editingProject: Project?
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 18) {
-                ContentUnavailableView {
-                    Label("Projects", systemImage: "folder")
-                } description: {
-                    Text("Phase 5 will connect customer and project CRUD. The drawing workspace shell is ready for Phase 6.")
-                } actions: {
-                    NavigationLink("Open Drawing Workspace Preview") {
-                        DrawingWorkspaceView()
+            Group {
+                if viewModel.isLoading && viewModel.projects.isEmpty {
+                    ProgressView("Loading projects")
+                } else if viewModel.projects.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Projects", systemImage: "folder")
+                    } description: {
+                        Text(viewModel.customers.isEmpty ? "Create a customer first, then start a project." : "Create a project to open the drawing workspace.")
+                    } actions: {
+                        Button("New Project") {
+                            showingNewProject = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(viewModel.customers.isEmpty)
                     }
-                    .buttonStyle(.borderedProminent)
+                } else {
+                    List {
+                        ForEach(viewModel.projects) { project in
+                            NavigationLink {
+                                DrawingWorkspaceView(project: project)
+                            } label: {
+                                ProjectRow(project: project)
+                                    .swipeActions(edge: .leading) {
+                                        Button("Edit") {
+                                            editingProject = project
+                                        }
+                                        .tint(.blue)
+                                    }
+                            }
+                        }
+                        .onDelete { offsets in
+                            Task { await viewModel.deleteProjects(at: offsets) }
+                        }
+                    }
+                    .refreshable {
+                        await viewModel.load()
+                    }
                 }
             }
             .navigationTitle("Projects")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingNewProject = true
+                    } label: {
+                        Label("New Project", systemImage: "plus")
+                    }
+                    .disabled(viewModel.customers.isEmpty)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let message = viewModel.errorMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(.regularMaterial)
+                }
+            }
+            .sheet(isPresented: $showingNewProject) {
+                ProjectFormView(title: "New Project", customers: viewModel.customers) { request in
+                    await viewModel.createProject(request)
+                }
+            }
+            .sheet(item: $editingProject) { project in
+                ProjectFormView(title: "Edit Project", project: project, customers: viewModel.customers) { request in
+                    await viewModel.updateProject(project, request: request)
+                }
+            }
+            .task {
+                viewModel.configure(apiClient: appState.apiClient)
+                await viewModel.load()
+            }
         }
+    }
+}
+
+private struct ProjectRow: View {
+    let project: Project
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(project.title)
+                    .font(.headline)
+                Spacer()
+                Text(project.status.capitalized)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.12), in: Capsule())
+            }
+            HStack(spacing: 12) {
+                Label(project.customerName ?? "Customer", systemImage: "person")
+                Label(project.roomType.capitalized, systemImage: "square.grid.2x2")
+                Text("Updated \(project.updatedAt, style: .date)")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct ProjectFormView: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let project: Project?
+    let customers: [Customer]
+    let onSave: (ProjectUpsertRequest) async -> Void
+
+    @State private var customerID: UUID
+    @State private var projectTitle: String
+    @State private var roomType: String
+    @State private var status: String
+    @State private var isSaving = false
+
+    init(
+        title: String,
+        project: Project? = nil,
+        customers: [Customer],
+        onSave: @escaping (ProjectUpsertRequest) async -> Void
+    ) {
+        self.title = title
+        self.project = project
+        self.customers = customers
+        self.onSave = onSave
+        _customerID = State(initialValue: project?.customerID ?? customers.first?.id ?? UUID())
+        _projectTitle = State(initialValue: project?.title ?? "")
+        _roomType = State(initialValue: project?.roomType ?? "bathroom")
+        _status = State(initialValue: project?.status ?? "draft")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Project") {
+                    Picker("Customer", selection: $customerID) {
+                        ForEach(customers) { customer in
+                            Text(customer.name).tag(customer.id)
+                        }
+                    }
+                    TextField("Title", text: $projectTitle)
+                    Picker("Room", selection: $roomType) {
+                        Text("Bathroom").tag("bathroom")
+                        Text("Kitchen").tag("kitchen")
+                        Text("Whole Home").tag("whole_home")
+                        Text("Other").tag("other")
+                    }
+                    Picker("Status", selection: $status) {
+                        Text("Draft").tag("draft")
+                        Text("Quoted").tag("quoted")
+                        Text("Approved").tag("approved")
+                        Text("Completed").tag("completed")
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isSaving ? "Saving" : "Save") {
+                        Task {
+                            isSaving = true
+                            await onSave(request)
+                            isSaving = false
+                            dismiss()
+                        }
+                    }
+                    .disabled(customers.isEmpty || projectTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                }
+            }
+        }
+    }
+
+    private var request: ProjectUpsertRequest {
+        ProjectUpsertRequest(
+            customerID: customerID,
+            title: projectTitle.trimmingCharacters(in: .whitespacesAndNewlines),
+            roomType: roomType,
+            status: status
+        )
+    }
+}
+
+@MainActor
+final class ProjectListViewModel: ObservableObject {
+    @Published private(set) var projects: [Project] = []
+    @Published private(set) var customers: [Customer] = []
+    @Published private(set) var isLoading = false
+    @Published var errorMessage: String?
+
+    private var projectService: ProjectService?
+    private var customerService: CustomerService?
+
+    func configure(apiClient: APIClient) {
+        if projectService == nil {
+            projectService = ProjectService(apiClient: apiClient)
+            customerService = CustomerService(apiClient: apiClient)
+        }
+    }
+
+    func load() async {
+        guard let projectService, let customerService else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            async let loadedCustomers = customerService.listCustomers()
+            async let loadedProjects = projectService.listProjects()
+            customers = try await loadedCustomers
+            projects = try await loadedProjects
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func createProject(_ request: ProjectUpsertRequest) async {
+        guard let projectService else { return }
+        do {
+            let project = try await projectService.createProject(request)
+            projects.insert(project, at: 0)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func updateProject(_ project: Project, request: ProjectUpsertRequest) async {
+        guard let projectService else { return }
+        do {
+            let updated = try await projectService.updateProject(id: project.id, request: request)
+            if let index = projects.firstIndex(where: { $0.id == updated.id }) {
+                projects[index] = updated
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteProjects(at offsets: IndexSet) async {
+        guard let projectService else { return }
+        for index in offsets {
+            let project = projects[index]
+            do {
+                try await projectService.deleteProject(id: project.id)
+                projects.removeAll { $0.id == project.id }
+                errorMessage = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+struct ProjectService {
+    let apiClient: APIClient
+
+    func listProjects() async throws -> [Project] {
+        let response: ListResponse<Project> = try await apiClient.get("projects")
+        return response.items
+    }
+
+    func createProject(_ request: ProjectUpsertRequest) async throws -> Project {
+        try await apiClient.post("projects", body: request)
+    }
+
+    func updateProject(id: UUID, request: ProjectUpsertRequest) async throws -> Project {
+        try await apiClient.put("projects/\(id.uuidString)", body: request)
+    }
+
+    func deleteProject(id: UUID) async throws {
+        try await apiClient.delete("projects/\(id.uuidString)")
     }
 }

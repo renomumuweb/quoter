@@ -35,6 +35,7 @@ private struct RootContent: View {
 private enum SidebarItem: String, CaseIterable, Identifiable {
     case projects = "Projects"
     case customers = "Customers"
+    case products = "Products"
     case quote = "Quote Preview"
     case contract = "Contract"
     case settings = "Settings"
@@ -45,6 +46,7 @@ private enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .projects: return "folder"
         case .customers: return "person.2"
+        case .products: return "shippingbox"
         case .quote: return "list.bullet.rectangle"
         case .contract: return "doc.richtext"
         case .settings: return "gearshape"
@@ -80,6 +82,8 @@ private struct MainShellView: View {
                 ProjectListView()
             case .customers:
                 CustomerListView()
+            case .products:
+                ProductCatalogView()
             case .quote:
                 QuotePreviewView()
             case .contract:

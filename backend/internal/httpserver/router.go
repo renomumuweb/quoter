@@ -54,7 +54,8 @@ func New(deps Dependencies) *Server {
 	protected.POST("/auth/logout", authHandler.Logout)
 	protected.GET("/auth/me", authHandler.Me)
 
-	registerScaffoldRoutes(protected)
+	businessHandler := handlers.NewBusinessHandler(deps.DB)
+	registerBusinessRoutes(protected, businessHandler)
 
 	return &Server{
 		httpServer: &http.Server{
@@ -77,46 +78,57 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
 }
 
-func registerScaffoldRoutes(router *gin.RouterGroup) {
-	notReady := handlers.NotImplemented
+func registerBusinessRoutes(router *gin.RouterGroup, handler handlers.BusinessHandler) {
+	router.GET("/customers", handler.ListCustomers)
+	router.POST("/customers", handler.CreateCustomer)
+	router.GET("/customers/:id", handler.GetCustomer)
+	router.PUT("/customers/:id", handler.UpdateCustomer)
+	router.DELETE("/customers/:id", handler.DeleteCustomer)
 
-	router.GET("/customers", notReady("customers.list", "Phase 5"))
-	router.POST("/customers", notReady("customers.create", "Phase 5"))
-	router.GET("/customers/:id", notReady("customers.get", "Phase 5"))
-	router.PUT("/customers/:id", notReady("customers.update", "Phase 5"))
-	router.DELETE("/customers/:id", notReady("customers.delete", "Phase 5"))
+	router.GET("/projects", handler.ListProjects)
+	router.POST("/projects", handler.CreateProject)
+	router.GET("/projects/:id", handler.GetProject)
+	router.PUT("/projects/:id", handler.UpdateProject)
+	router.DELETE("/projects/:id", handler.DeleteProject)
 
-	router.GET("/projects", notReady("projects.list", "Phase 5"))
-	router.POST("/projects", notReady("projects.create", "Phase 5"))
-	router.GET("/projects/:id", notReady("projects.get", "Phase 5"))
-	router.PUT("/projects/:id", notReady("projects.update", "Phase 5"))
-	router.DELETE("/projects/:id", notReady("projects.delete", "Phase 5"))
+	router.GET("/projects/:id/drawing", handler.GetDrawing)
+	router.PUT("/projects/:id/drawing", handler.UpdateDrawing)
+	router.POST("/projects/:id/drawing/upload-url", handler.CreateDrawingUploadURL)
+	router.PUT("/file-assets/:id/upload", handler.UploadFileAsset)
+	router.GET("/file-assets/:id/download", handler.DownloadFileAsset)
+	router.POST("/drawing-objects", handler.CreateDrawingObject)
+	router.PUT("/drawing-objects/:id", handler.UpdateDrawingObject)
+	router.DELETE("/drawing-objects/:id", handler.DeleteDrawingObject)
+	router.POST("/drawing-annotations", handler.CreateDrawingAnnotation)
+	router.PUT("/drawing-annotations/:id", handler.UpdateDrawingAnnotation)
+	router.DELETE("/drawing-annotations/:id", handler.DeleteDrawingAnnotation)
 
-	router.GET("/projects/:id/drawing", notReady("drawing.get", "Phase 6"))
-	router.PUT("/projects/:id/drawing", notReady("drawing.save", "Phase 6"))
-	router.POST("/projects/:id/drawing/upload-url", notReady("drawing.upload_url", "Phase 6"))
-	router.POST("/drawing-objects", notReady("drawing_objects.create", "Phase 6"))
-	router.PUT("/drawing-objects/:id", notReady("drawing_objects.update", "Phase 6"))
-	router.DELETE("/drawing-objects/:id", notReady("drawing_objects.delete", "Phase 6"))
-	router.POST("/drawing-annotations", notReady("drawing_annotations.create", "Phase 6"))
-	router.PUT("/drawing-annotations/:id", notReady("drawing_annotations.update", "Phase 6"))
-	router.DELETE("/drawing-annotations/:id", notReady("drawing_annotations.delete", "Phase 6"))
+	router.GET("/products", handler.ListProducts)
+	router.POST("/products", handler.CreateProduct)
+	router.GET("/products/recommendations", handler.RecommendProducts)
+	router.GET("/products/:id", handler.GetProduct)
+	router.PUT("/products/:id", handler.UpdateProduct)
+	router.DELETE("/products/:id", handler.DeleteProduct)
+	router.GET("/product-categories", handler.ListProductCategories)
+	router.POST("/product-categories", handler.CreateProductCategory)
+	router.PUT("/product-categories/:id", handler.UpdateProductCategory)
+	router.DELETE("/product-categories/:id", handler.DeleteProductCategory)
+	router.GET("/brands", handler.ListBrands)
+	router.POST("/brands", handler.CreateBrand)
+	router.PUT("/brands/:id", handler.UpdateBrand)
+	router.DELETE("/brands/:id", handler.DeleteBrand)
 
-	router.GET("/products", notReady("products.list", "Phase 7"))
-	router.GET("/products/recommendations", notReady("products.recommendations", "Phase 7"))
-	router.GET("/products/:id", notReady("products.get", "Phase 7"))
-	router.GET("/product-categories", notReady("product_categories.list", "Phase 7"))
-	router.GET("/brands", notReady("brands.list", "Phase 7"))
+	router.POST("/projects/:id/quotes/preview", handler.PreviewQuote)
+	router.POST("/projects/:id/quotes", handler.CreateQuote)
+	router.GET("/quotes", handler.ListQuotes)
+	router.GET("/quotes/:id", handler.GetQuote)
+	router.POST("/quotes/:id/confirm", handler.ConfirmQuote)
 
-	router.POST("/projects/:id/quotes/preview", notReady("quotes.preview", "Phase 8"))
-	router.POST("/projects/:id/quotes", notReady("quotes.create", "Phase 8"))
-	router.GET("/quotes/:id", notReady("quotes.get", "Phase 8"))
-	router.POST("/quotes/:id/confirm", notReady("quotes.confirm", "Phase 8"))
-
-	router.POST("/quotes/:id/contracts", notReady("contracts.create", "Phase 9"))
-	router.GET("/contracts/:id", notReady("contracts.get", "Phase 9"))
-	router.POST("/contracts/:id/pdf", notReady("contracts.pdf", "Phase 9"))
-	router.GET("/contracts/:id/download-url", notReady("contracts.download_url", "Phase 9"))
+	router.POST("/quotes/:id/contracts", handler.CreateContract)
+	router.GET("/contracts", handler.ListContracts)
+	router.GET("/contracts/:id", handler.GetContract)
+	router.POST("/contracts/:id/pdf", handler.CreateContractPDFRecord)
+	router.GET("/contracts/:id/download-url", handler.GetContractDownloadURL)
 }
 
 func requestLogger(logger *slog.Logger) gin.HandlerFunc {

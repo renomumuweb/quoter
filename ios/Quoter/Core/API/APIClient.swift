@@ -67,6 +67,22 @@ final class APIClient {
         let _: EmptyResponse = try await send(path: path, method: .post, body: body, authenticated: authenticated)
     }
 
+    func put<Body: Encodable, Response: Decodable>(
+        _ path: String,
+        body: Body,
+        authenticated: Bool = true
+    ) async throws -> Response {
+        try await send(path: path, method: .put, body: body, authenticated: authenticated)
+    }
+
+    func putNoResponse<Body: Encodable>(_ path: String, body: Body, authenticated: Bool = true) async throws {
+        let _: EmptyResponse = try await send(path: path, method: .put, body: body, authenticated: authenticated)
+    }
+
+    func delete(_ path: String, authenticated: Bool = true) async throws {
+        let _: EmptyResponse = try await send(path: path, method: .delete, body: Optional<EmptyRequest>.none, authenticated: authenticated)
+    }
+
     private func send<Body: Encodable, Response: Decodable>(
         path: String,
         method: HTTPMethod,

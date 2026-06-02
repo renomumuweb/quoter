@@ -3,6 +3,8 @@ import Foundation
 
 struct DrawingObject: Codable, Identifiable, Hashable {
     var id: UUID = UUID()
+    var projectID: UUID?
+    var drawingID: UUID?
     var objectType: String
     var productID: UUID?
     var serviceID: UUID?
@@ -19,10 +21,40 @@ struct DrawingObject: Codable, Identifiable, Hashable {
     var notes: String
     var isQuoteEnabled: Bool
     var isContractVisible: Bool
+    var status: String?
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case projectID = "projectId"
+        case drawingID = "drawingId"
+        case objectType
+        case productID = "productId"
+        case serviceID = "serviceId"
+        case categoryID = "categoryId"
+        case x
+        case y
+        case width
+        case height
+        case rotation
+        case quantity
+        case unit
+        case discountAmount
+        case installationFee
+        case notes
+        case isQuoteEnabled
+        case isContractVisible
+        case status
+        case createdAt
+        case updatedAt
+    }
 }
 
 struct DrawingAnnotation: Codable, Identifiable, Hashable {
     var id: UUID = UUID()
+    var projectID: UUID?
+    var drawingID: UUID?
     var annotationType: String
     var text: String
     var x: CGFloat
@@ -35,6 +67,58 @@ struct DrawingAnnotation: Codable, Identifiable, Hashable {
     var linkedQuoteItemID: UUID?
     var exportToPDF: Bool
     var showInContract: Bool
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case projectID = "projectId"
+        case drawingID = "drawingId"
+        case annotationType
+        case text
+        case x
+        case y
+        case width
+        case height
+        case rotation
+        case linkedObjectID = "linkedObjectId"
+        case linkedProductID = "linkedProductId"
+        case linkedQuoteItemID = "linkedQuoteItemId"
+        case exportToPDF = "exportToPdf"
+        case showInContract
+        case createdAt
+        case updatedAt
+    }
+}
+
+struct DrawingRecord: Codable, Identifiable, Hashable {
+    let id: UUID
+    let projectID: UUID
+    var drawingFileAssetID: UUID?
+    var previewFileAssetID: UUID?
+    var canvasWidth: Double
+    var canvasHeight: Double
+    var status: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case projectID = "projectId"
+        case drawingFileAssetID = "drawingFileAssetId"
+        case previewFileAssetID = "previewFileAssetId"
+        case canvasWidth
+        case canvasHeight
+        case status
+        case createdAt
+        case updatedAt
+    }
+}
+
+struct DrawingResponse: Codable, Hashable {
+    var drawing: DrawingRecord
+    var objects: [DrawingObject]
+    var annotations: [DrawingAnnotation]
 }
 
 extension DrawingObject {

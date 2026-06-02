@@ -6,3 +6,7 @@ struct PaginatedResponse<Item: Codable>: Codable {
     let perPage: Int
     let total: Int
 }
+
+struct ListResponse<Item: Codable>: Codable {
+    let items: [Item]
+}

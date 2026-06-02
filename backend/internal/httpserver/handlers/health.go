@@ -31,13 +31,3 @@ func (h HealthHandler) Ready(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ready"})
 }
-
-func NotImplemented(feature string, phase string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusNotImplemented, gin.H{
-			"error":   "not implemented yet",
-			"feature": feature,
-			"phase":   phase,
-		})
-	}
-}

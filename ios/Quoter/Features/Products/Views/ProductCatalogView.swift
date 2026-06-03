@@ -9,6 +9,9 @@ struct ProductCatalogView: View {
     @State private var editingProduct: Product?
     @State private var editingBrand: ProductBrand?
     @State private var editingCategory: ProductCategory?
+    @State private var selectedScopes: Set<String> = []
+    @State private var selectedCategoryID: UUID?
+    @State private var selectedBrandID: UUID?
 
     var body: some View {
         NavigationStack {
@@ -21,11 +24,98 @@ struct ProductCatalogView: View {
                         }
                 }
 
-                Section("Products") {
-                    if viewModel.products.isEmpty {
+                Section("Service Areas") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
+                        ForEach(Project.serviceScopes, id: \.id) { scope in
+                            Button {
+                                toggleScope(scope.id)
+                            } label: {
+                                Label(scope.title, systemImage: scope.icon)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(selectedScopes.contains(scope.id) ? Color.blue : Color.secondary)
+                        }
+                    }
+                }
+
+                Section("1. Category") {
+                    if visibleCategories.isEmpty {
+                        ContentUnavailableView("No Categories", systemImage: "square.grid.2x2")
+                    } else {
+                        ForEach(visibleCategories) { category in
+                            Button {
+                                selectedCategoryID = category.id
+                            } label: {
+                                HStack {
+                                    Label(category.name, systemImage: category.kind == "service" ? "wrench.and.screwdriver" : "shippingbox")
+                                    Spacer()
+                                    if selectedCategoryID == category.id {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(.blue)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .swipeActions {
+                                Button("Edit") {
+                                    editingCategory = category
+                                }
+                                .tint(.blue)
+                            }
+                        }
+                        .onDelete { offsets in
+                            Task { await viewModel.deleteCategories(at: offsets, in: visibleCategories) }
+                        }
+                    }
+                }
+
+                Section("2. Brand") {
+                    Button {
+                        selectedBrandID = nil
+                    } label: {
+                        HStack {
+                            Label("Any Brand", systemImage: "line.3.horizontal.decrease.circle")
+                            Spacer()
+                            if selectedBrandID == nil {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    ForEach(viewModel.brands) { brand in
+                        Button {
+                            selectedBrandID = brand.id
+                        } label: {
+                            HStack {
+                                Text(brand.name)
+                                Spacer()
+                                if selectedBrandID == brand.id {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions {
+                            Button("Edit") {
+                                editingBrand = brand
+                            }
+                            .tint(.blue)
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await viewModel.deleteBrands(at: offsets) }
+                    }
+                }
+
+                Section("3. Products") {
+                    if visibleProducts.isEmpty {
                         ContentUnavailableView("No Products", systemImage: "shippingbox")
                     } else {
-                        ForEach(viewModel.products) { product in
+                        ForEach(visibleProducts) { product in
                             Button {
                                 editingProduct = product
                             } label: {
@@ -34,38 +124,8 @@ struct ProductCatalogView: View {
                             .buttonStyle(.plain)
                         }
                         .onDelete { offsets in
-                            Task { await viewModel.deleteProducts(at: offsets) }
+                            Task { await viewModel.deleteProducts(at: offsets, in: visibleProducts) }
                         }
-                    }
-                }
-
-                Section("Brands") {
-                    ForEach(viewModel.brands) { brand in
-                        Button(brand.name) {
-                            editingBrand = brand
-                        }
-                    }
-                    .onDelete { offsets in
-                        Task { await viewModel.deleteBrands(at: offsets) }
-                    }
-                }
-
-                Section("Categories") {
-                    ForEach(viewModel.categories) { category in
-                        Button {
-                            editingCategory = category
-                        } label: {
-                            HStack {
-                                Text(category.name)
-                                Spacer()
-                                Text(category.kind.capitalized)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .onDelete { offsets in
-                        Task { await viewModel.deleteCategories(at: offsets) }
                     }
                 }
             }
@@ -81,7 +141,7 @@ struct ProductCatalogView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button("New Product") { showingNewProduct = true }
-                            .disabled(viewModel.categories.isEmpty)
+                            .disabled(visibleCategories.isEmpty)
                         Button("New Brand") { showingNewBrand = true }
                         Button("New Category") { showingNewCategory = true }
                     } label: {
@@ -103,7 +163,9 @@ struct ProductCatalogView: View {
                 ProductFormView(
                     title: "New Product",
                     categories: viewModel.categories,
-                    brands: viewModel.brands
+                    brands: viewModel.brands,
+                    defaultCategoryID: selectedCategoryID ?? visibleCategories.first?.id,
+                    defaultBrandID: selectedBrandID
                 ) { request in
                     await viewModel.createProduct(request)
                 }
@@ -141,12 +203,70 @@ struct ProductCatalogView: View {
             .task {
                 viewModel.configure(apiClient: appState.apiClient)
                 await viewModel.load()
+                ensureCategorySelection()
             }
             .onChange(of: viewModel.searchText) { _, _ in
                 Task { await viewModel.debouncedProductSearch() }
             }
+            .onChange(of: viewModel.categories) { _, _ in
+                ensureCategorySelection()
+            }
+            .onChange(of: selectedScopes) { _, _ in
+                ensureCategorySelection()
+            }
         }
     }
+
+    private var visibleCategories: [ProductCategory] {
+        viewModel.categories.filter { category in
+            selectedScopes.isEmpty || categoryMatchesSelectedScopes(category.name)
+        }
+    }
+
+    private var visibleProducts: [Product] {
+        viewModel.products.filter { product in
+            let matchesScope = selectedScopes.isEmpty || categoryMatchesSelectedScopes(product.category)
+            let matchesCategory = selectedCategoryID == nil || product.categoryID == selectedCategoryID
+            let matchesBrand = selectedBrandID == nil || product.brandID == selectedBrandID
+            return matchesScope && matchesCategory && matchesBrand
+        }
+    }
+
+    private func toggleScope(_ scope: String) {
+        if selectedScopes.contains(scope) {
+            selectedScopes.remove(scope)
+        } else {
+            selectedScopes.insert(scope)
+        }
+    }
+
+    private func ensureCategorySelection() {
+        guard !visibleCategories.isEmpty else {
+            selectedCategoryID = nil
+            return
+        }
+        if selectedCategoryID == nil || !visibleCategories.contains(where: { $0.id == selectedCategoryID }) {
+            selectedCategoryID = visibleCategories.first?.id
+        }
+    }
+
+    private func categoryMatchesSelectedScopes(_ name: String) -> Bool {
+        let value = name.lowercased()
+        if selectedScopes.contains("whole_home") {
+            return true
+        }
+        return selectedScopes.contains(where: { scope in
+            Self.scopeKeywords[scope, default: [scope]].contains { value.contains($0) }
+        })
+    }
+
+    private static let scopeKeywords: [String: [String]] = [
+        "kitchen": ["kitchen", "cabinet", "sink", "faucet", "backsplash"],
+        "bathroom": ["bath", "vanity", "toilet", "shower", "tub", "tile", "install"],
+        "flooring": ["floor", "tile", "vinyl", "hardwood", "laminate"],
+        "doors_windows": ["door", "window", "trim"],
+        "countertops": ["counter", "countertop", "slab", "quartz", "granite"]
+    ]
 }
 
 private struct ProductRow: View {
@@ -210,6 +330,8 @@ private struct ProductFormView: View {
         product: Product? = nil,
         categories: [ProductCategory],
         brands: [ProductBrand],
+        defaultCategoryID: UUID? = nil,
+        defaultBrandID: UUID? = nil,
         onSave: @escaping (ProductUpsertRequest) async -> Void
     ) {
         self.title = title
@@ -217,8 +339,8 @@ private struct ProductFormView: View {
         self.categories = categories
         self.brands = brands
         self.onSave = onSave
-        _brandID = State(initialValue: product?.brandID)
-        _categoryID = State(initialValue: product?.categoryID ?? categories.first?.id ?? UUID())
+        _brandID = State(initialValue: product?.brandID ?? defaultBrandID)
+        _categoryID = State(initialValue: product?.categoryID ?? defaultCategoryID ?? categories.first?.id ?? UUID())
         _name = State(initialValue: product?.name ?? "")
         _sku = State(initialValue: product?.sku ?? "")
         _size = State(initialValue: product?.size ?? "")
@@ -462,9 +584,10 @@ final class ProductCatalogViewModel: ObservableObject {
         }
     }
 
-    func deleteProducts(at offsets: IndexSet) async {
+    func deleteProducts(at offsets: IndexSet, in source: [Product]? = nil) async {
+        let productsToDelete = source ?? products
         for index in offsets {
-            let product = products[index]
+            let product = productsToDelete[index]
             await perform {
                 try await serviceRequired().deleteProduct(id: product.id)
                 products.removeAll { $0.id == product.id }
@@ -512,9 +635,10 @@ final class ProductCatalogViewModel: ObservableObject {
         }
     }
 
-    func deleteCategories(at offsets: IndexSet) async {
+    func deleteCategories(at offsets: IndexSet, in source: [ProductCategory]? = nil) async {
+        let categoriesToDelete = source ?? categories
         for index in offsets {
-            let category = categories[index]
+            let category = categoriesToDelete[index]
             await perform {
                 try await serviceRequired().deleteCategory(id: category.id)
                 categories.removeAll { $0.id == category.id }

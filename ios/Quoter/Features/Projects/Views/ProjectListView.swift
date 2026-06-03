@@ -103,7 +103,7 @@ private struct ProjectRow: View {
             }
             HStack(spacing: 12) {
                 Label(project.customerName ?? "Customer", systemImage: "person")
-                Label(project.roomType.capitalized, systemImage: "square.grid.2x2")
+                Label(Project.serviceScopeTitle(project.roomType), systemImage: "square.grid.2x2")
                 Text("Updated \(project.updatedAt, style: .date)")
             }
             .font(.caption)
@@ -122,7 +122,7 @@ private struct ProjectFormView: View {
 
     @State private var customerID: UUID
     @State private var projectTitle: String
-    @State private var roomType: String
+    @State private var selectedScopes: Set<String>
     @State private var status: String
     @State private var isSaving = false
 
@@ -138,7 +138,7 @@ private struct ProjectFormView: View {
         self.onSave = onSave
         _customerID = State(initialValue: project?.customerID ?? customers.first?.id ?? UUID())
         _projectTitle = State(initialValue: project?.title ?? "")
-        _roomType = State(initialValue: project?.roomType ?? "bathroom")
+        _selectedScopes = State(initialValue: ProjectFormView.scopes(from: project?.roomType ?? "bathroom"))
         _status = State(initialValue: project?.status ?? "draft")
     }
 
@@ -152,12 +152,24 @@ private struct ProjectFormView: View {
                         }
                     }
                     TextField("Title", text: $projectTitle)
-                    Picker("Room", selection: $roomType) {
-                        Text("Bathroom").tag("bathroom")
-                        Text("Kitchen").tag("kitchen")
-                        Text("Whole Home").tag("whole_home")
-                        Text("Other").tag("other")
+                }
+
+                Section("Service Areas") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
+                        ForEach(Project.serviceScopes, id: \.id) { scope in
+                            Button {
+                                toggle(scope.id)
+                            } label: {
+                                Label(scope.title, systemImage: scope.icon)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(selectedScopes.contains(scope.id) ? Color.blue : Color.secondary)
+                        }
                     }
+                }
+
+                Section("Status") {
                     Picker("Status", selection: $status) {
                         Text("Draft").tag("draft")
                         Text("Quoted").tag("quoted")
@@ -190,9 +202,25 @@ private struct ProjectFormView: View {
         ProjectUpsertRequest(
             customerID: customerID,
             title: projectTitle.trimmingCharacters(in: .whitespacesAndNewlines),
-            roomType: roomType,
+            roomType: selectedScopes.isEmpty ? "other" : selectedScopes.sorted().joined(separator: ","),
             status: status
         )
+    }
+
+    private func toggle(_ scope: String) {
+        if selectedScopes.contains(scope) {
+            selectedScopes.remove(scope)
+        } else {
+            selectedScopes.insert(scope)
+        }
+    }
+
+    private static func scopes(from rawValue: String) -> Set<String> {
+        let scopes = rawValue
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Set(scopes.isEmpty ? ["bathroom"] : scopes)
     }
 }
 

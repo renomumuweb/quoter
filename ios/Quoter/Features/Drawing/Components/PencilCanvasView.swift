@@ -3,6 +3,9 @@ import SwiftUI
 
 struct PencilCanvasView: UIViewRepresentable {
     @Binding var drawingData: Data
+    var isDrawingEnabled: Bool
+    var inkColor: Color
+    var inkWidth: CGFloat
 
     func makeCoordinator() -> Coordinator {
         Coordinator(drawingData: $drawingData)
@@ -14,11 +17,14 @@ struct PencilCanvasView: UIViewRepresentable {
         canvas.backgroundColor = .clear
         canvas.isOpaque = false
         canvas.drawingPolicy = .anyInput
-        canvas.tool = PKInkingTool(.pen, color: .label, width: 4)
+        canvas.tool = PKInkingTool(.pen, color: UIColor(inkColor), width: inkWidth)
+        canvas.isUserInteractionEnabled = isDrawingEnabled
         return canvas
     }
 
     func updateUIView(_ uiView: PKCanvasView, context: Context) {
+        uiView.tool = PKInkingTool(.pen, color: UIColor(inkColor), width: inkWidth)
+        uiView.isUserInteractionEnabled = isDrawingEnabled
         guard !drawingData.isEmpty,
               uiView.drawing.dataRepresentation() != drawingData,
               let drawing = try? PKDrawing(data: drawingData) else {

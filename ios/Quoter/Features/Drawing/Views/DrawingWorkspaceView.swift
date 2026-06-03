@@ -1,5 +1,40 @@
 import SwiftUI
 
+private enum CanvasInteractionMode: String, CaseIterable, Identifiable {
+    case move
+    case draw
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .move: return "Move"
+        case .draw: return "Draw"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .move: return "hand.draw"
+        case .draw: return "pencil.tip"
+        }
+    }
+}
+
+private struct DrawingInkColorOption: Identifiable {
+    let id: String
+    let color: Color
+}
+
+private let drawingInkColors: [DrawingInkColorOption] = [
+    DrawingInkColorOption(id: "black", color: .black),
+    DrawingInkColorOption(id: "blue", color: .blue),
+    DrawingInkColorOption(id: "red", color: .red),
+    DrawingInkColorOption(id: "orange", color: .orange),
+    DrawingInkColorOption(id: "green", color: .green),
+    DrawingInkColorOption(id: "purple", color: .purple)
+]
+
 struct DrawingWorkspaceView: View {
     @EnvironmentObject private var appState: AppState
     let project: Project?
@@ -8,6 +43,17 @@ struct DrawingWorkspaceView: View {
     @State private var drawingData = Data()
     @State private var selectedObjectID: UUID?
     @State private var selectedAnnotationID: UUID?
+    @State private var mode: CanvasInteractionMode = .move
+    @State private var inkColorID = "black"
+    @State private var inkWidth: CGFloat = 4
+    @State private var canvasScale: CGFloat = 1
+    @State private var canvasOffset: CGSize = .zero
+    @State private var panStartOffset: CGSize = .zero
+    @State private var zoomStartScale: CGFloat = 1
+    @State private var isProjectPanelCollapsed = false
+    @State private var showDrawingLayer = true
+    @State private var showObjectLayer = true
+    @State private var showAnnotationLayer = true
 
     init(project: Project? = nil) {
         self.project = project
@@ -16,39 +62,10 @@ struct DrawingWorkspaceView: View {
     var body: some View {
         HStack(spacing: 0) {
             projectPanel
-                .frame(width: 240)
+                .frame(width: isProjectPanelCollapsed ? 72 : 260)
                 .background(Color(.secondarySystemGroupedBackground))
 
-            ZStack {
-                CanvasGridView()
-                PencilCanvasView(drawingData: $drawingData)
-                ForEach(viewModel.objects) { object in
-                    ProductObjectOverlayView(
-                        object: object,
-                        isSelected: selectedObjectID == object.id
-                    )
-                    .onTapGesture {
-                        selectedObjectID = object.id
-                        selectedAnnotationID = nil
-                    }
-                }
-                ForEach(viewModel.annotations) { annotation in
-                    AnnotationOverlayView(annotation: annotation)
-                        .onTapGesture {
-                            selectedAnnotationID = annotation.id
-                            selectedObjectID = nil
-                        }
-                }
-            }
-            .overlay {
-                if viewModel.isLoading {
-                    ProgressView("Loading drawing")
-                        .padding()
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                }
-            }
-            .clipped()
-            .background(Color(.systemBackground))
+            canvasArea
 
             inspectorPanel
                 .frame(width: 340)
@@ -72,39 +89,262 @@ struct DrawingWorkspaceView: View {
         }
     }
 
+    private var canvasArea: some View {
+        ZStack(alignment: .top) {
+            Color(.systemBackground)
+                .contentShape(Rectangle())
+                .gesture(canvasPanGesture)
+                .simultaneousGesture(canvasZoomGesture)
+                .onTapGesture {
+                    guard mode == .move else { return }
+                    selectedObjectID = nil
+                    selectedAnnotationID = nil
+                }
+
+            ZStack {
+                CanvasGridView()
+                    .allowsHitTesting(false)
+
+                if showDrawingLayer {
+                    PencilCanvasView(
+                        drawingData: $drawingData,
+                        isDrawingEnabled: mode == .draw,
+                        inkColor: selectedInkColor,
+                        inkWidth: inkWidth
+                    )
+                    .allowsHitTesting(mode == .draw)
+                }
+
+                if showObjectLayer {
+                    ForEach(viewModel.objects) { object in
+                        ProductObjectOverlayView(
+                            object: object,
+                            isSelected: selectedObjectID == object.id,
+                            productName: viewModel.productName(for: object),
+                            canvasScale: canvasScale,
+                            canEdit: mode == .move,
+                            onTap: {
+                                selectedObjectID = object.id
+                                selectedAnnotationID = nil
+                            },
+                            onMove: { updated in
+                                viewModel.updateObjectLocally(updated)
+                            },
+                            onResize: { updated in
+                                viewModel.updateObjectLocally(updated)
+                            },
+                            onCommit: { updated in
+                                Task { await viewModel.saveObject(updated) }
+                            }
+                        )
+                        .allowsHitTesting(mode == .move)
+                    }
+                }
+
+                if showAnnotationLayer {
+                    ForEach(viewModel.annotations) { annotation in
+                        AnnotationOverlayView(
+                            annotation: annotation,
+                            isSelected: selectedAnnotationID == annotation.id,
+                            canvasScale: canvasScale,
+                            canEdit: mode == .move,
+                            onTap: {
+                                selectedAnnotationID = annotation.id
+                                selectedObjectID = nil
+                            },
+                            onMove: { updated in
+                                viewModel.updateAnnotationLocally(updated)
+                            },
+                            onCommit: { updated in
+                                Task { await viewModel.saveAnnotation(updated) }
+                            }
+                        )
+                        .allowsHitTesting(mode == .move)
+                    }
+                }
+            }
+            .scaleEffect(canvasScale)
+            .offset(canvasOffset)
+
+            canvasToolbar
+
+            if viewModel.isLoading {
+                ProgressView("Loading drawing")
+                    .padding()
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.top, 72)
+            }
+        }
+        .clipped()
+    }
+
+    private var canvasToolbar: some View {
+        HStack(spacing: 12) {
+            Picker("Canvas Mode", selection: $mode) {
+                ForEach(CanvasInteractionMode.allCases) { mode in
+                    Label(mode.title, systemImage: mode.systemImage).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 220)
+
+            if mode == .draw {
+                HStack(spacing: 8) {
+                    ForEach(drawingInkColors) { option in
+                        Button {
+                            inkColorID = option.id
+                        } label: {
+                            Circle()
+                                .fill(option.color)
+                                .overlay {
+                                    Circle()
+                                        .stroke(inkColorID == option.id ? Color.primary : Color.clear, lineWidth: 2)
+                                }
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Slider(value: $inkWidth, in: 2...14, step: 1)
+                        .frame(width: 120)
+                }
+            }
+
+            Spacer()
+
+            Button {
+                canvasScale = 1
+                zoomStartScale = 1
+                canvasOffset = .zero
+                panStartOffset = .zero
+            } label: {
+                Label("Reset", systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bordered)
+
+            Text("\(Int(canvasScale * 100))%")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 48, alignment: .trailing)
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(12)
+    }
+
+    private var canvasPanGesture: some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                guard mode == .move else { return }
+                canvasOffset = CGSize(
+                    width: panStartOffset.width + value.translation.width,
+                    height: panStartOffset.height + value.translation.height
+                )
+            }
+            .onEnded { _ in
+                panStartOffset = canvasOffset
+            }
+    }
+
+    private var canvasZoomGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                guard mode == .move else { return }
+                canvasScale = clamped(zoomStartScale * value, min: 0.55, max: 3.5)
+            }
+            .onEnded { _ in
+                zoomStartScale = canvasScale
+            }
+    }
+
+    private var selectedInkColor: Color {
+        drawingInkColors.first { $0.id == inkColorID }?.color ?? .black
+    }
+
+    private func clamped(_ value: CGFloat, min minimum: CGFloat, max maximum: CGFloat) -> CGFloat {
+        Swift.min(Swift.max(value, minimum), maximum)
+    }
+
     private var projectPanel: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label(project?.title ?? "Preview Project", systemImage: "folder")
-                .font(.headline)
-            if let project {
-                Text(project.customerName ?? "Customer")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Text(project.roomType.capitalized)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isProjectPanelCollapsed.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: isProjectPanelCollapsed ? "sidebar.left" : "sidebar.left.hide")
+                    if !isProjectPanelCollapsed {
+                        Text("Collapse")
+                    }
+                }
+            }
+            .buttonStyle(.bordered)
+
+            if isProjectPanelCollapsed {
+                Divider()
+                Label(mode.title, systemImage: mode.systemImage)
+                    .labelStyle(.iconOnly)
+                    .font(.title3)
+                Circle()
+                    .fill(selectedInkColor)
+                    .frame(width: 28, height: 28)
+                Spacer()
+            } else {
+                Label(project?.title ?? "Preview Project", systemImage: "folder")
+                    .font(.headline)
+                if let project {
+                    Text(project.customerName ?? "Customer")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(Project.serviceScopeTitle(project.roomType))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+                Text("Layers")
+                    .font(.subheadline.weight(.semibold))
+                Toggle("Drawing", isOn: $showDrawingLayer)
+                Toggle("Objects", isOn: $showObjectLayer)
+                Toggle("Annotations", isOn: $showAnnotationLayer)
+
+                Divider()
+                Text("Brush")
+                    .font(.subheadline.weight(.semibold))
+                HStack(spacing: 8) {
+                    ForEach(drawingInkColors) { option in
+                        Button {
+                            inkColorID = option.id
+                            mode = .draw
+                        } label: {
+                            Circle()
+                                .fill(option.color)
+                                .overlay {
+                                    Circle()
+                                        .stroke(inkColorID == option.id ? Color.primary : Color.clear, lineWidth: 2)
+                                }
+                                .frame(width: 26, height: 26)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Slider(value: $inkWidth, in: 2...14, step: 1)
+
+                Divider()
+                Button {
+                    Task { await viewModel.saveDrawing() }
+                } label: {
+                    Label("Save Drawing", systemImage: "square.and.arrow.down")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(project == nil)
+
+                Text(project == nil ? "Preview mode uses local sample data." : "Objects and annotations are saved to the self-hosted API.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Spacer()
             }
-
-            Divider()
-            Text("Layers")
-                .font(.subheadline.weight(.semibold))
-            Toggle("Drawing", isOn: .constant(true))
-            Toggle("Objects", isOn: .constant(true))
-            Toggle("Annotations", isOn: .constant(true))
-
-            Divider()
-            Button {
-                Task { await viewModel.saveDrawing() }
-            } label: {
-                Label("Save Drawing", systemImage: "square.and.arrow.down")
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(project == nil)
-
-            Text(project == nil ? "Preview mode uses local sample data." : "Objects and annotations are saved to the self-hosted API.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
         }
         .padding()
     }
@@ -144,6 +384,8 @@ struct DrawingWorkspaceView: View {
                 if let index = selectedObjectIndex {
                     ObjectInspector(
                         object: $viewModel.objects[index],
+                        categories: viewModel.categories,
+                        brands: viewModel.brands,
                         products: viewModel.products,
                         onSave: { object in await viewModel.saveObject(object) },
                         onDelete: { object in
@@ -190,9 +432,12 @@ struct DrawingWorkspaceView: View {
 
 private struct ObjectInspector: View {
     @Binding var object: DrawingObject
+    let categories: [ProductCategory]
+    let brands: [ProductBrand]
     let products: [Product]
     let onSave: (DrawingObject) async -> Void
     let onDelete: (DrawingObject) async -> Void
+    @State private var selectedBrandID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -202,9 +447,23 @@ private struct ObjectInspector: View {
             TextField("Object Type", text: $object.objectType)
                 .textInputAutocapitalization(.never)
 
+            Picker("Category", selection: $object.categoryID) {
+                Text("Any Category").tag(Optional<UUID>.none)
+                ForEach(categories) { category in
+                    Text(category.name).tag(Optional(category.id))
+                }
+            }
+
+            Picker("Brand", selection: $selectedBrandID) {
+                Text("Any Brand").tag(Optional<UUID>.none)
+                ForEach(brands) { brand in
+                    Text(brand.name).tag(Optional(brand.id))
+                }
+            }
+
             Picker("Product", selection: productSelection) {
                 Text("Unbound").tag(Optional<UUID>.none)
-                ForEach(products) { product in
+                ForEach(filteredProducts) { product in
                     Text("\(product.name) \(product.currentPrice.map { DecimalFormatter.currency($0) } ?? "")")
                         .tag(Optional(product.id))
                 }
@@ -239,13 +498,56 @@ private struct ObjectInspector: View {
                 .buttonStyle(.bordered)
             }
         }
+        .onAppear {
+            selectedBrandID = selectedProduct?.brandID
+            if object.categoryID == nil {
+                object.categoryID = selectedProduct?.categoryID
+            }
+        }
+        .onChange(of: object.categoryID) { _, _ in
+            clearProductIfNeeded()
+        }
+        .onChange(of: selectedBrandID) { _, _ in
+            clearProductIfNeeded()
+        }
     }
 
     private var productSelection: Binding<UUID?> {
         Binding {
             object.productID ?? object.serviceID
         } set: { value in
-            object.productID = value
+            guard let value else {
+                object.productID = nil
+                object.serviceID = nil
+                return
+            }
+            guard let product = products.first(where: { $0.id == value }) else { return }
+            object.productID = product.isService ? nil : product.id
+            object.serviceID = product.isService ? product.id : nil
+            object.categoryID = product.categoryID
+            object.unit = product.unit
+            object.objectType = product.category.lowercased()
+            selectedBrandID = product.brandID
+        }
+    }
+
+    private var selectedProduct: Product? {
+        guard let id = object.productID ?? object.serviceID else { return nil }
+        return products.first { $0.id == id }
+    }
+
+    private var filteredProducts: [Product] {
+        products.filter { product in
+            let matchesCategory = object.categoryID == nil || product.categoryID == object.categoryID
+            let matchesBrand = selectedBrandID == nil || product.brandID == selectedBrandID
+            return matchesCategory && matchesBrand
+        }
+    }
+
+    private func clearProductIfNeeded() {
+        guard let selectedProduct else { return }
+        if !filteredProducts.contains(where: { $0.id == selectedProduct.id }) {
+            object.productID = nil
             object.serviceID = nil
         }
     }
@@ -334,6 +636,8 @@ final class DrawingWorkspaceViewModel: ObservableObject {
     @Published var objects: [DrawingObject] = []
     @Published var annotations: [DrawingAnnotation] = []
     @Published private(set) var products: [Product] = []
+    @Published private(set) var categories: [ProductCategory] = []
+    @Published private(set) var brands: [ProductBrand] = []
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
@@ -355,6 +659,8 @@ final class DrawingWorkspaceViewModel: ObservableObject {
         defer { isLoading = false }
         do {
             async let loadedProducts = productService.listProducts()
+            async let loadedCategories = productService.listCategories()
+            async let loadedBrands = productService.listBrands()
             if let project, let drawingService {
                 let response = try await drawingService.getDrawing(projectID: project.id)
                 drawing = response.drawing
@@ -365,6 +671,8 @@ final class DrawingWorkspaceViewModel: ObservableObject {
                 annotations = [.preview]
             }
             products = try await loadedProducts
+            categories = try await loadedCategories
+            brands = try await loadedBrands
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -415,6 +723,19 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             errorMessage = error.localizedDescription
             return nil
         }
+    }
+
+    func productName(for object: DrawingObject) -> String? {
+        guard let id = object.productID ?? object.serviceID else { return nil }
+        return products.first { $0.id == id }?.name
+    }
+
+    func updateObjectLocally(_ object: DrawingObject) {
+        replace(object, in: &objects)
+    }
+
+    func updateAnnotationLocally(_ annotation: DrawingAnnotation) {
+        replace(annotation, in: &annotations)
     }
 
     func saveObject(_ object: DrawingObject) async {

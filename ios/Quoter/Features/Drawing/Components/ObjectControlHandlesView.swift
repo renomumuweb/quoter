@@ -6,7 +6,10 @@ struct ObjectControlHandlesView: View {
             ForEach(handlePoints(in: proxy.size), id: \.self) { point in
                 Circle()
                     .fill(Color.white)
-                    .stroke(Color.blue, lineWidth: 2)
+                    .overlay {
+                        Circle()
+                            .stroke(Color.blue, lineWidth: 2)
+                    }
                     .frame(width: 12, height: 12)
                     .position(point)
             }

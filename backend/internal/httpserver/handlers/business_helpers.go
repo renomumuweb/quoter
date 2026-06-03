@@ -15,15 +15,21 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"quoter/backend/internal/domain/catalog"
 	"quoter/backend/internal/httpserver/middleware"
+	postgresrepo "quoter/backend/internal/repository/postgres"
 )
 
 type BusinessHandler struct {
-	db *pgxpool.Pool
+	db      *pgxpool.Pool
+	catalog *catalog.Service
 }
 
 func NewBusinessHandler(db *pgxpool.Pool) BusinessHandler {
-	return BusinessHandler{db: db}
+	return BusinessHandler{
+		db:      db,
+		catalog: catalog.NewService(postgresrepo.NewCatalogRepository(db)),
+	}
 }
 
 type actor struct {

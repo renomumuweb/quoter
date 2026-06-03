@@ -35,3 +35,33 @@ struct ProjectUpsertRequest: Encodable {
         case status
     }
 }
+
+struct ProjectServiceScope: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let icon: String
+}
+
+extension Project {
+    static let serviceScopes: [ProjectServiceScope] = [
+        ProjectServiceScope(id: "kitchen", title: "Kitchen", icon: "cooktop"),
+        ProjectServiceScope(id: "bathroom", title: "Bathroom", icon: "shower"),
+        ProjectServiceScope(id: "whole_home", title: "Whole Home", icon: "house"),
+        ProjectServiceScope(id: "flooring", title: "Flooring", icon: "square.grid.3x3"),
+        ProjectServiceScope(id: "doors_windows", title: "Doors/Windows", icon: "door.left.hand.open"),
+        ProjectServiceScope(id: "countertops", title: "Countertops", icon: "rectangle.center.inset.filled")
+    ]
+
+    static func serviceScopeTitle(_ rawValue: String) -> String {
+        let ids = rawValue
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !ids.isEmpty else { return "Other" }
+
+        let names = ids.map { id in
+            serviceScopes.first { $0.id == id }?.title ?? id.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+        return names.joined(separator: ", ")
+    }
+}

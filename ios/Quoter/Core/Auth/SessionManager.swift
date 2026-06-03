@@ -4,7 +4,7 @@ import Foundation
 final class SessionManager: ObservableObject {
     @Published private(set) var currentUser: AppUser?
     @Published private(set) var companyName: String = ""
-    @Published private(set) var isRestoring = false
+    @Published private(set) var isRestoring = true
     @Published var errorMessage: String?
 
     private let authService: AuthService
@@ -32,12 +32,18 @@ final class SessionManager: ObservableObject {
             tokenPair = saved
             do {
                 try await loadMe()
-            } catch {
+            } catch APIError.unauthorized {
                 try await refreshSession()
                 try await loadMe()
+            } catch {
+                errorMessage = "Saved session found, but the server could not be reached."
             }
         } catch {
-            clearLocalSession()
+            if isAuthenticationFailure(error) {
+                clearLocalSession()
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -100,5 +106,15 @@ final class SessionManager: ObservableObject {
         tokenPair = nil
         currentUser = nil
         companyName = ""
+    }
+
+    private func isAuthenticationFailure(_ error: Error) -> Bool {
+        if case APIError.unauthorized = error {
+            return true
+        }
+        if case let APIError.server(_, statusCode) = error, statusCode == 401 || statusCode == 403 {
+            return true
+        }
+        return false
     }
 }

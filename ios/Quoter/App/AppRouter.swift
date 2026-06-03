@@ -13,20 +13,17 @@ private struct RootContent: View {
 
     var body: some View {
         Group {
-            if session.isAuthenticated {
-                MainShellView(session: session)
-            } else {
-                AuthRootView(session: session)
-            }
-        }
-        .overlay {
             if session.isRestoring {
                 ZStack {
-                    Color.black.opacity(0.08).ignoresSafeArea()
+                    Color(.systemGroupedBackground).ignoresSafeArea()
                     ProgressView("Restoring session")
                         .padding()
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
                 }
+            } else if session.isAuthenticated {
+                MainShellView(session: session)
+            } else {
+                AuthRootView(session: session)
             }
         }
     }

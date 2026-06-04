@@ -23,7 +23,7 @@ struct ContractPreviewView: View {
                 } else {
                     Picker("Quote", selection: $viewModel.selectedQuoteID) {
                         ForEach(viewModel.quotes) { quote in
-                            Text("\(quote.quoteNumber) · \(DecimalFormatter.currency(quote.total))").tag(Optional(quote.id))
+                            Text("\(quote.quoteNumber) · \(DecimalFormatter.currency(quote.total))").tag(quote.id as UUID?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -77,7 +77,7 @@ struct ContractPreviewView: View {
                     }
                     .listStyle(.insetGrouped)
 
-                    if let pdfURL {
+                    if let pdfURL = pdfURL {
                         PDFPreviewView(url: pdfURL)
                             .frame(minHeight: 320)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -122,12 +122,12 @@ struct ContractPreviewView: View {
                 }
             }
             .sheet(isPresented: $showingShareSheet) {
-                if let pdfURL {
+                if let pdfURL = pdfURL {
                     ShareSheet(items: [pdfURL])
                 }
             }
             .sheet(isPresented: $showingMailComposer) {
-                if let pdfURL {
+                if let pdfURL = pdfURL {
                     PDFMailComposer(
                         pdfURL: pdfURL,
                         recipient: pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -172,7 +172,7 @@ struct ContractPreviewView: View {
     }
 
     private func emailPDF() {
-        guard let pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
+        guard let pdfURL = pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
             viewModel.errorMessage = localization.language == .simplifiedChinese ? "请先生成 PDF。" : "Generate a PDF first."
             return
         }
@@ -201,7 +201,7 @@ struct ContractPreviewView: View {
                 viewModel.errorMessage = nil
             case .failed:
                 viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件发送失败，请重试或使用分享 PDF。" : "Email failed. Please retry or use Share PDF."
-            @unknown default:
+            default:
                 viewModel.errorMessage = nil
             }
         case let .failure(error):

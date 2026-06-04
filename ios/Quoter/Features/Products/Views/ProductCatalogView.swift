@@ -364,9 +364,9 @@ private struct ProductFormView: View {
                         }
                     }
                     Picker("Brand", selection: $brandID) {
-                        Text("No Brand").tag(Optional<UUID>.none)
+                        Text("No Brand").tag(nil as UUID?)
                         ForEach(brands) { brand in
-                            Text(brand.name).tag(Optional(brand.id))
+                            Text(brand.name).tag(brand.id as UUID?)
                         }
                     }
                     TextField("Name", text: $name)

@@ -23,7 +23,7 @@ struct QuotePreviewView: View {
                 } else {
                     Picker("Project", selection: $viewModel.selectedProjectID) {
                         ForEach(viewModel.projects) { project in
-                            Text(project.title).tag(Optional(project.id))
+                            Text(project.title).tag(project.id as UUID?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -100,12 +100,12 @@ struct QuotePreviewView: View {
                 Task { await viewModel.previewSelectedProject() }
             }
             .sheet(isPresented: $showingShareSheet) {
-                if let pdfURL {
+                if let pdfURL = pdfURL {
                     ShareSheet(items: [pdfURL])
                 }
             }
             .sheet(isPresented: $showingMailComposer) {
-                if let pdfURL {
+                if let pdfURL = pdfURL {
                     PDFMailComposer(
                         pdfURL: pdfURL,
                         recipient: pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -135,7 +135,7 @@ struct QuotePreviewView: View {
                 }
             }
 
-            if let pdfURL {
+            if let pdfURL = pdfURL {
                 PDFPreviewView(url: pdfURL)
                     .frame(minHeight: 240)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -178,7 +178,7 @@ struct QuotePreviewView: View {
     }
 
     private func emailPDF() {
-        guard let pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
+        guard let pdfURL = pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
             viewModel.errorMessage = localization.language == .simplifiedChinese ? "请先生成 PDF。" : "Generate a PDF first."
             return
         }
@@ -207,7 +207,7 @@ struct QuotePreviewView: View {
                 viewModel.errorMessage = nil
             case .failed:
                 viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件发送失败，请重试或使用分享 PDF。" : "Email failed. Please retry or use Share PDF."
-            @unknown default:
+            default:
                 viewModel.errorMessage = nil
             }
         case let .failure(error):
@@ -371,9 +371,9 @@ final class QuotePreviewViewModel: ObservableObject {
     func pdfLines(for preview: QuotePreview, language: AppLanguage) -> [String] {
         if language == .simplifiedChinese {
             var lines = [
-                "项目 ID：\(preview.projectID.uuidString)",
-                "客户 ID：\(preview.customerID.uuidString)",
-                "货币：\(preview.currency)"
+                "项目 ID：\(uuidText(preview.projectID, language: language))",
+                "客户 ID：\(uuidText(preview.customerID, language: language))",
+                "货币：\(text(preview.currency, language: language))"
             ]
             if !preview.warnings.isEmpty {
                 lines.append("警告：")
@@ -391,9 +391,9 @@ final class QuotePreviewViewModel: ObservableObject {
         }
 
         var lines = [
-            "Project ID: \(preview.projectID.uuidString)",
-            "Customer ID: \(preview.customerID.uuidString)",
-            "Currency: \(preview.currency)"
+            "Project ID: \(uuidText(preview.projectID, language: language))",
+            "Customer ID: \(uuidText(preview.customerID, language: language))",
+            "Currency: \(text(preview.currency, language: language))"
         ]
         if !preview.warnings.isEmpty {
             lines.append("Warnings:")
@@ -408,6 +408,20 @@ final class QuotePreviewViewModel: ObservableObject {
         lines.append("Tax: \(DecimalFormatter.currency(preview.taxTotal))")
         lines.append("Total: \(DecimalFormatter.currency(preview.total))")
         return lines
+    }
+
+    private func uuidText(_ id: UUID?, language: AppLanguage) -> String {
+        if let id = id {
+            return id.uuidString
+        }
+        return language == .simplifiedChinese ? "未提供" : "Not provided"
+    }
+
+    private func text(_ value: String?, language: AppLanguage) -> String {
+        guard let value = value, !value.isEmpty else {
+            return language == .simplifiedChinese ? "未提供" : "Not provided"
+        }
+        return value
     }
 }
 

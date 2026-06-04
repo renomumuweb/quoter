@@ -15,8 +15,8 @@ struct TutorialGuideView: View {
                 .animation(.easeInOut(duration: 0.2), value: page)
 
             TabView(selection: $page) {
-                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                    TutorialStepCard(step: step)
+                ForEach(steps.indices, id: \.self) { index in
+                    TutorialStepCard(step: steps[index])
                         .tag(index)
                         .padding(.horizontal, 8)
                 }
@@ -82,8 +82,12 @@ private struct TutorialStepCard: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(step.bullets, id: \.self) { bullet in
-                    Label(bullet, systemImage: "checkmark.circle")
-                        .font(.callout)
+                    Label {
+                        Text(bullet)
+                    } icon: {
+                        Image(systemName: "checkmark.circle")
+                    }
+                    .font(.callout)
                 }
             }
 

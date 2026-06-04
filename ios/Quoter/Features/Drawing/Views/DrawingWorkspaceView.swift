@@ -505,24 +505,24 @@ private struct ObjectInspector: View {
                 .textInputAutocapitalization(.never)
 
             Picker("Category", selection: $object.categoryID) {
-                Text("Any Category").tag(Optional<UUID>.none)
+                Text("Any Category").tag(nil as UUID?)
                 ForEach(categories) { category in
-                    Text(category.name).tag(Optional(category.id))
+                    Text(category.name).tag(category.id as UUID?)
                 }
             }
 
             Picker("Brand", selection: $selectedBrandID) {
-                Text("Any Brand").tag(Optional<UUID>.none)
+                Text("Any Brand").tag(nil as UUID?)
                 ForEach(brands) { brand in
-                    Text(brand.name).tag(Optional(brand.id))
+                    Text(brand.name).tag(brand.id as UUID?)
                 }
             }
 
             Picker("Product", selection: productSelection) {
-                Text("Unbound").tag(Optional<UUID>.none)
+                Text("Unbound").tag(nil as UUID?)
                 ForEach(filteredProducts) { product in
                     Text("\(product.name) \(product.currentPrice.map { DecimalFormatter.currency($0) } ?? "")")
-                        .tag(Optional(product.id))
+                        .tag(product.id as UUID?)
                 }
             }
 
@@ -649,9 +649,9 @@ private struct AnnotationInspector: View {
             TextField("Text", text: $annotation.text, axis: .vertical)
                 .lineLimit(2...5)
             Picker("Linked Object", selection: $annotation.linkedObjectID) {
-                Text("None").tag(Optional<UUID>.none)
+                Text("None").tag(nil as UUID?)
                 ForEach(objects) { object in
-                    Text(object.objectType.capitalized).tag(Optional(object.id))
+                    Text(object.objectType.capitalized).tag(object.id as UUID?)
                 }
             }
             Toggle("Export to PDF", isOn: $annotation.exportToPDF)

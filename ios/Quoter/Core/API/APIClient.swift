@@ -59,8 +59,8 @@ final class APIClient {
     ) {
         self.baseURL = baseURL
         self.requestConfiguration = requestConfiguration
-        if let session {
-            self.session = session
+        if let providedSession = session {
+            self.session = providedSession
         } else {
             let configuration = URLSessionConfiguration.default
             configuration.timeoutIntervalForRequest = requestConfiguration.timeoutInterval

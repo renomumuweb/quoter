@@ -50,7 +50,7 @@ struct PDFMailComposer: UIViewControllerRepresentable {
             error: Error?
         ) {
             controller.dismiss(animated: true)
-            if let error {
+            if let error = error {
                 onFinish(.failure(error))
             } else {
                 onFinish(.success(result))

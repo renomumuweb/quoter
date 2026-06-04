@@ -49,7 +49,11 @@
 		B00000000000000000000040 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000040 /* AuthViewModel.swift */; };
 		B00000000000000000000041 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000041 /* AuthService.swift */; };
 		B00000000000000000000042 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000042 /* AuthModels.swift */; };
+		B00000000000000000000043 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000043 /* AppLocalization.swift */; };
+		B00000000000000000000044 /* TutorialGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000044 /* TutorialGuideView.swift */; };
+		B00000000000000000000045 /* PDFMailComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000045 /* PDFMailComposer.swift */; };
 		B00000000000000000000903 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000903 /* Assets.xcassets */; };
+		B00000000000000000000940 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000940 /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -96,6 +100,13 @@
 		F00000000000000000000040 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/ViewModels/AuthViewModel.swift; sourceTree = "<group>"; };
 		F00000000000000000000041 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Services/AuthService.swift; sourceTree = "<group>"; };
 		F00000000000000000000042 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Auth/Models/AuthModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000043 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Localization/AppLocalization.swift; sourceTree = "<group>"; };
+		F00000000000000000000044 /* TutorialGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Settings/Views/TutorialGuideView.swift; sourceTree = "<group>"; };
+		F00000000000000000000045 /* PDFMailComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Contracts/PDF/PDFMailComposer.swift; sourceTree = "<group>"; };
+		F00000000000000000000941 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		F00000000000000000000942 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		F00000000000000000000943 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		F00000000000000000000944 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
 		F00000000000000000000900 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Resources/Info.plist; sourceTree = "<group>"; };
 		F00000000000000000000901 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Resources/Config/Debug.xcconfig; sourceTree = "<group>"; };
 		F00000000000000000000902 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Resources/Config/Release.xcconfig; sourceTree = "<group>"; };
@@ -137,7 +148,9 @@
 				F00000000000000000000003 /* AppRouter.swift */,
 				F00000000000000000000004 /* DecimalFormatter.swift */,
 				F00000000000000000000005 /* DateFormatterProvider.swift */,
+				F00000000000000000000043 /* AppLocalization.swift */,
 				F00000000000000000000006 /* SettingsView.swift */,
+				F00000000000000000000044 /* TutorialGuideView.swift */,
 				F00000000000000000000007 /* LocalDraftStore.swift */,
 				F00000000000000000000008 /* KeychainStore.swift */,
 				F00000000000000000000009 /* DrawingWorkspaceView.swift */,
@@ -148,6 +161,7 @@
 				F00000000000000000000014 /* ShareSheet.swift */,
 				F00000000000000000000015 /* PDFPreviewView.swift */,
 				F00000000000000000000016 /* PDFGenerator.swift */,
+				F00000000000000000000045 /* PDFMailComposer.swift */,
 				F00000000000000000000017 /* ProductMatcher.swift */,
 				F00000000000000000000018 /* CanvasCoordinateMapper.swift */,
 				F00000000000000000000019 /* ProductObjectOverlayView.swift */,
@@ -174,6 +188,7 @@
 				F00000000000000000000040 /* AuthViewModel.swift */,
 				F00000000000000000000041 /* AuthService.swift */,
 				F00000000000000000000042 /* AuthModels.swift */,
+				F00000000000000000000940 /* Localizable.strings */,
 				F00000000000000000000900 /* Info.plist */,
 				F00000000000000000000901 /* Debug.xcconfig */,
 				F00000000000000000000902 /* Release.xcconfig */,
@@ -223,6 +238,9 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hans",
+				fr,
+				it,
 				Base,
 			);
 			mainGroup = A00000000000000000000001;
@@ -241,6 +259,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000903 /* Assets.xcassets in Resources */,
+				B00000000000000000000940 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,10 +312,27 @@
 				B00000000000000000000040 /* AuthViewModel.swift in Sources */,
 				B00000000000000000000041 /* AuthService.swift in Sources */,
 				B00000000000000000000042 /* AuthModels.swift in Sources */,
+				B00000000000000000000043 /* AppLocalization.swift in Sources */,
+				B00000000000000000000044 /* TutorialGuideView.swift in Sources */,
+				B00000000000000000000045 /* PDFMailComposer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		F00000000000000000000940 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				F00000000000000000000941 /* en */,
+				F00000000000000000000942 /* zh-Hans */,
+				F00000000000000000000943 /* fr */,
+				F00000000000000000000944 /* it */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		A00000000000000000000011 /* Debug */ = {

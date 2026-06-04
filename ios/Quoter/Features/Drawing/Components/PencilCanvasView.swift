@@ -33,6 +33,10 @@ struct PencilCanvasView: UIViewRepresentable {
         uiView.drawing = drawing
     }
 
+    static func dismantleUIView(_ uiView: PKCanvasView, coordinator: Coordinator) {
+        uiView.delegate = nil
+    }
+
     final class Coordinator: NSObject, PKCanvasViewDelegate {
         @Binding private var drawingData: Data
 

@@ -17,7 +17,7 @@ struct AuthRootView: View {
 
                 Picker("Mode", selection: $mode) {
                     ForEach(AuthMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+                        Text(LocalizedStringKey(mode.title)).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)

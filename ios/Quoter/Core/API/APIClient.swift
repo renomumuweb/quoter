@@ -17,9 +17,15 @@ enum APIEnvironment {
     }
 }
 
+struct APIRequestConfiguration {
+    var timeoutInterval: TimeInterval = 18
+    var maxRetryCount: Int = 2
+}
+
 final class APIClient {
     private let baseURL: URL
     private let session: URLSession
+    private let requestConfiguration: APIRequestConfiguration
     var accessTokenProvider: (() async -> String?)?
 
     private let encoder: JSONEncoder = {
@@ -46,9 +52,21 @@ final class APIClient {
         return decoder
     }()
 
-    init(baseURL: URL, session: URLSession = .shared) {
+    init(
+        baseURL: URL,
+        session: URLSession? = nil,
+        requestConfiguration: APIRequestConfiguration = APIRequestConfiguration()
+    ) {
         self.baseURL = baseURL
-        self.session = session
+        self.requestConfiguration = requestConfiguration
+        if let session {
+            self.session = session
+        } else {
+            let configuration = URLSessionConfiguration.default
+            configuration.timeoutIntervalForRequest = requestConfiguration.timeoutInterval
+            configuration.timeoutIntervalForResource = requestConfiguration.timeoutInterval * Double(requestConfiguration.maxRetryCount + 1)
+            self.session = URLSession(configuration: configuration)
+        }
     }
 
     func get<Response: Decodable>(_ path: String, authenticated: Bool = true) async throws -> Response {
@@ -101,11 +119,54 @@ final class APIClient {
             request.httpBody = try encoder.encode(body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
+        request.timeoutInterval = requestConfiguration.timeoutInterval
 
         if authenticated, let token = await accessTokenProvider?() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
+        let maxRetries = retryLimit(for: method)
+        let totalAttempts = maxRetries + 1
+        for attempt in 1...totalAttempts {
+            do {
+                return try await execute(
+                    request: request,
+                    path: path,
+                    method: method,
+                    attempt: attempt,
+                    maxRetries: maxRetries
+                )
+            } catch let error as URLError {
+                let mapped = mapNetworkError(error, attempt: attempt, maxRetries: maxRetries)
+                guard shouldRetry(urlError: error, method: method, attempt: attempt, maxRetries: maxRetries) else {
+                    throw mapped
+                }
+                await sleepBeforeRetry(attempt: attempt)
+            } catch let error as APIError {
+                guard shouldRetry(apiError: error, method: method, attempt: attempt, maxRetries: maxRetries) else {
+                    throw error
+                }
+                await sleepBeforeRetry(attempt: attempt)
+            } catch {
+                throw APIError.network(
+                    message: error.localizedDescription,
+                    attempts: attempt,
+                    maxRetries: maxRetries,
+                    timeoutSeconds: requestConfiguration.timeoutInterval
+                )
+            }
+        }
+
+        throw APIError.invalidResponse
+    }
+
+    private func execute<Response: Decodable>(
+        request: URLRequest,
+        path: String,
+        method: HTTPMethod,
+        attempt: Int,
+        maxRetries: Int
+    ) async throws -> Response {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -116,7 +177,10 @@ final class APIClient {
         }
         guard (200..<300).contains(http.statusCode) else {
             let message = (try? decoder.decode(APIErrorPayload.self, from: data).error) ?? "Request failed"
-            throw APIError.server(message: message, statusCode: http.statusCode)
+            throw APIError.server(
+                message: "\(message) Status: \(http.statusCode). Method: \(method.rawValue), path: \(path), attempts: \(attempt)/\(maxRetries + 1), retries: \(maxRetries), timeout: \(formattedTimeout)s.",
+                statusCode: http.statusCode
+            )
         }
 
         if Response.self == EmptyResponse.self {
@@ -126,8 +190,58 @@ final class APIClient {
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
-            throw APIError.decodingFailed(error.localizedDescription)
+            throw APIError.decodingFailed("Method: \(method.rawValue), path: \(path). \(error.localizedDescription)")
         }
+    }
+
+    private var formattedTimeout: String {
+        String(format: "%.0f", requestConfiguration.timeoutInterval)
+    }
+
+    private func retryLimit(for method: HTTPMethod) -> Int {
+        switch method {
+        case .get, .put, .delete:
+            return requestConfiguration.maxRetryCount
+        case .post:
+            return 0
+        }
+    }
+
+    private func shouldRetry(apiError: APIError, method: HTTPMethod, attempt: Int, maxRetries: Int) -> Bool {
+        guard attempt <= maxRetries else { return false }
+        guard retryLimit(for: method) > 0 else { return false }
+        if case let .server(_, statusCode) = apiError {
+            return [408, 429, 500, 502, 503, 504].contains(statusCode)
+        }
+        return false
+    }
+
+    private func shouldRetry(urlError: URLError, method: HTTPMethod, attempt: Int, maxRetries: Int) -> Bool {
+        guard attempt <= maxRetries else { return false }
+        guard retryLimit(for: method) > 0 else { return false }
+        switch urlError.code {
+        case .timedOut, .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .notConnectedToInternet, .dnsLookupFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func mapNetworkError(_ error: URLError, attempt: Int, maxRetries: Int) -> APIError {
+        if error.code == .timedOut {
+            return .timeout(seconds: requestConfiguration.timeoutInterval, attempts: attempt, maxRetries: maxRetries)
+        }
+        return .network(
+            message: error.localizedDescription,
+            attempts: attempt,
+            maxRetries: maxRetries,
+            timeoutSeconds: requestConfiguration.timeoutInterval
+        )
+    }
+
+    private func sleepBeforeRetry(attempt: Int) async {
+        let delay = UInt64(350_000_000 * attempt)
+        try? await Task.sleep(nanoseconds: delay)
     }
 }
 

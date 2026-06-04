@@ -1,10 +1,15 @@
+import Foundation
+import MessageUI
 import SwiftUI
 
 struct ContractPreviewView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var localization: AppLocalization
     @StateObject private var viewModel = ContractPreviewViewModel()
     @State private var pdfURL: URL?
     @State private var showingShareSheet = false
+    @State private var showingMailComposer = false
+    @State private var pdfRecipient = ""
 
     var body: some View {
         NavigationStack {
@@ -25,6 +30,7 @@ struct ContractPreviewView: View {
 
                     HStack {
                         Button("Create Contract") {
+                            pdfURL = nil
                             Task { await viewModel.createContract() }
                         }
                         .buttonStyle(.borderedProminent)
@@ -37,10 +43,7 @@ struct ContractPreviewView: View {
                             .buttonStyle(.bordered)
 
                             Button("Generate Local PDF") {
-                                pdfURL = try? PDFGenerator().makeContractPDF(
-                                    title: contract.contractNumber,
-                                    lines: viewModel.pdfLines(for: contract)
-                                )
+                                generatePDF(for: contract)
                             }
                             .buttonStyle(.bordered)
                         }
@@ -49,9 +52,10 @@ struct ContractPreviewView: View {
                     List {
                         Section("Contracts") {
                             ForEach(viewModel.contracts) { contract in
-                                Button {
-                                    viewModel.selectedContractID = contract.id
-                                } label: {
+                            Button {
+                                viewModel.selectedContractID = contract.id
+                                pdfURL = nil
+                            } label: {
                                     HStack {
                                         VStack(alignment: .leading) {
                                             Text(contract.contractNumber)
@@ -81,6 +85,20 @@ struct ContractPreviewView: View {
                             showingShareSheet = true
                         }
                         .buttonStyle(.bordered)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            TextField("Recipient email", text: $pdfRecipient)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .textFieldStyle(.roundedBorder)
+
+                            Button("Email PDF") {
+                                emailPDF()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
                     }
                 }
             }
@@ -108,11 +126,100 @@ struct ContractPreviewView: View {
                     ShareSheet(items: [pdfURL])
                 }
             }
+            .sheet(isPresented: $showingMailComposer) {
+                if let pdfURL {
+                    PDFMailComposer(
+                        pdfURL: pdfURL,
+                        recipient: pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines),
+                        subject: mailSubject,
+                        body: mailBody,
+                        onFinish: handleMailResult
+                    )
+                }
+            }
             .task {
                 viewModel.configure(apiClient: appState.apiClient)
                 await viewModel.load()
             }
         }
+    }
+
+    private var mailSubject: String {
+        if localization.language == .simplifiedChinese {
+            return "合同 PDF"
+        }
+        return "Contract PDF"
+    }
+
+    private var mailBody: String {
+        if localization.language == .simplifiedChinese {
+            return "您好，附件是已生成的合同 PDF。"
+        }
+        return "Hello, the generated contract PDF is attached."
+    }
+
+    private func generatePDF(for contract: Contract) {
+        do {
+            pdfURL = try PDFGenerator().makeContractPDF(
+                title: contract.contractNumber,
+                lines: viewModel.pdfLines(for: contract, language: localization.language),
+                language: localization.language
+            )
+            viewModel.errorMessage = nil
+        } catch {
+            viewModel.errorMessage = localizedPDFError("PDF export failed", error: error)
+        }
+    }
+
+    private func emailPDF() {
+        guard let pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
+            viewModel.errorMessage = localization.language == .simplifiedChinese ? "请先生成 PDF。" : "Generate a PDF first."
+            return
+        }
+        let recipient = pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isValidEmail(recipient) else {
+            viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮箱格式不正确，请检查收件人。" : "The recipient email is invalid."
+            return
+        }
+        guard PDFMailComposer.canSendMail else {
+            viewModel.errorMessage = localization.language == .simplifiedChinese ? "此设备没有配置系统邮件账户，无法直接发送。你仍然可以使用“分享 PDF”。" : "Mail is not configured on this device. You can still use Share PDF."
+            return
+        }
+        viewModel.errorMessage = nil
+        showingMailComposer = true
+    }
+
+    private func handleMailResult(_ result: Result<MFMailComposeResult, Error>) {
+        switch result {
+        case let .success(mailResult):
+            switch mailResult {
+            case .sent:
+                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件已发送。" : "Email sent."
+            case .saved:
+                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件已存为草稿。" : "Email saved as a draft."
+            case .cancelled:
+                viewModel.errorMessage = nil
+            case .failed:
+                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件发送失败，请重试或使用分享 PDF。" : "Email failed. Please retry or use Share PDF."
+            @unknown default:
+                viewModel.errorMessage = nil
+            }
+        case let .failure(error):
+            viewModel.errorMessage = localizedPDFError("Email failed", error: error)
+        }
+    }
+
+    private func localizedPDFError(_ prefix: String, error: Error) -> String {
+        if localization.language == .simplifiedChinese {
+            return "\(prefix == "Email failed" ? "邮件发送失败" : "PDF 导出失败")：\(error.localizedDescription)"
+        }
+        return "\(prefix): \(error.localizedDescription)"
+    }
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let parts = email.split(separator: "@")
+        guard parts.count == 2 else { return false }
+        return parts[1].contains(".")
     }
 }
 
@@ -183,8 +290,18 @@ final class ContractPreviewViewModel: ObservableObject {
         }
     }
 
-    func pdfLines(for contract: Contract) -> [String] {
-        [
+    func pdfLines(for contract: Contract, language: AppLanguage) -> [String] {
+        if language == .simplifiedChinese {
+            return [
+                "合同编号：\(contract.contractNumber)",
+                "状态：\(contract.status.capitalized)",
+                "付款条款：\(contract.paymentTerms)",
+                "交付条款：\(contract.deliveryTerms)",
+                "免责声明：\(contract.disclaimer)",
+                "画图附件和报价快照已保存在后端合同记录中。"
+            ]
+        }
+        return [
             "Contract: \(contract.contractNumber)",
             "Status: \(contract.status.capitalized)",
             "Payment Terms: \(contract.paymentTerms)",

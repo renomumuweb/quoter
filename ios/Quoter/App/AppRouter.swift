@@ -58,15 +58,20 @@ private struct MainShellView: View {
     var body: some View {
         NavigationSplitView {
             List(SidebarItem.allCases, selection: $selection) { item in
-                Label(item.rawValue, systemImage: item.systemImage)
+                Label(LocalizedStringKey(item.rawValue), systemImage: item.systemImage)
                     .tag(item)
             }
             .navigationTitle("Quoter")
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(session.currentUser?.name ?? "Signed in")
-                            .font(.footnote.weight(.semibold))
+                        if let name = session.currentUser?.name {
+                            Text(name)
+                                .font(.footnote.weight(.semibold))
+                        } else {
+                            Text("Signed in")
+                                .font(.footnote.weight(.semibold))
+                        }
                         Text(session.companyName)
                             .font(.caption)
                             .foregroundStyle(.secondary)

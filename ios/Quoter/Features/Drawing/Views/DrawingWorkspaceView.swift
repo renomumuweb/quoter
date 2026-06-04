@@ -51,6 +51,7 @@ struct DrawingWorkspaceView: View {
     @State private var panStartOffset: CGSize = .zero
     @State private var zoomStartScale: CGFloat = 1
     @State private var isProjectPanelCollapsed = false
+    @State private var isInspectorCollapsed = false
     @State private var showDrawingLayer = true
     @State private var showObjectLayer = true
     @State private var showAnnotationLayer = true
@@ -67,9 +68,15 @@ struct DrawingWorkspaceView: View {
 
             canvasArea
 
-            inspectorPanel
-                .frame(width: 340)
-                .background(Color(.secondarySystemGroupedBackground))
+            if isInspectorCollapsed {
+                collapsedInspectorPanel
+                    .frame(width: 72)
+                    .background(Color(.secondarySystemGroupedBackground))
+            } else {
+                inspectorPanel
+                    .frame(width: 340)
+                    .background(Color(.secondarySystemGroupedBackground))
+            }
         }
         .navigationTitle(project?.title ?? "Drawing Workspace")
         .navigationBarTitleDisplayMode(.inline)
@@ -182,7 +189,7 @@ struct DrawingWorkspaceView: View {
         HStack(spacing: 12) {
             Picker("Canvas Mode", selection: $mode) {
                 ForEach(CanvasInteractionMode.allCases) { mode in
-                    Label(mode.title, systemImage: mode.systemImage).tag(mode)
+                    Label(LocalizedStringKey(mode.title), systemImage: mode.systemImage).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
@@ -273,7 +280,7 @@ struct DrawingWorkspaceView: View {
                 }
             } label: {
                 HStack {
-                    Image(systemName: isProjectPanelCollapsed ? "sidebar.left" : "sidebar.left.hide")
+                    Image(systemName: isProjectPanelCollapsed ? "chevron.right" : "chevron.left")
                     if !isProjectPanelCollapsed {
                         Text("Collapse")
                     }
@@ -283,7 +290,7 @@ struct DrawingWorkspaceView: View {
 
             if isProjectPanelCollapsed {
                 Divider()
-                Label(mode.title, systemImage: mode.systemImage)
+                Label(LocalizedStringKey(mode.title), systemImage: mode.systemImage)
                     .labelStyle(.iconOnly)
                     .font(.title3)
                 Circle()
@@ -352,8 +359,21 @@ struct DrawingWorkspaceView: View {
     private var inspectorPanel: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Inspector")
-                    .font(.headline)
+                HStack {
+                    Text("Inspector")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isInspectorCollapsed = true
+                        }
+                    } label: {
+                        Label("Collapse Inspector", systemImage: "chevron.right")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("Collapse Inspector")
+                }
 
                 HStack {
                     Button {
@@ -417,6 +437,43 @@ struct DrawingWorkspaceView: View {
             }
             .padding()
         }
+    }
+
+    private var collapsedInspectorPanel: some View {
+        VStack(spacing: 16) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isInspectorCollapsed = false
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+            }
+            .buttonStyle(.bordered)
+            .accessibilityLabel("Expand Inspector")
+
+            Divider()
+
+            Image(systemName: "info.circle")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+
+            if selectedObjectID != nil {
+                Image(systemName: "shippingbox")
+                    .foregroundStyle(.blue)
+                    .accessibilityLabel("Object selected")
+            } else if selectedAnnotationID != nil {
+                Image(systemName: "note.text")
+                    .foregroundStyle(.orange)
+                    .accessibilityLabel("Annotation selected")
+            } else {
+                Image(systemName: "hand.tap")
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Nothing selected")
+            }
+
+            Spacer()
+        }
+        .padding(.vertical)
     }
 
     private var selectedObjectIndex: Int? {

@@ -5,6 +5,7 @@ enum DecimalFormatter {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = code
+        formatter.locale = Locale(identifier: AppLanguage.storedOrDefault.localeIdentifier)
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
     }
 

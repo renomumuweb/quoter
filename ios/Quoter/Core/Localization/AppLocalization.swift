@@ -47,6 +47,15 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         }
         return prefersChinese ? .simplifiedChinese : .english
     }
+
+    static func localizedString(_ key: String) -> String {
+        let language = storedOrDefault
+        if let path = Bundle.main.path(forResource: language.rawValue, ofType: "lproj"),
+           let bundle = Bundle(path: path) {
+            return bundle.localizedString(forKey: key, value: key, table: nil)
+        }
+        return Bundle.main.localizedString(forKey: key, value: key, table: nil)
+    }
 }
 
 @MainActor

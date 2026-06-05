@@ -285,6 +285,9 @@ private struct ProductRow: View {
             HStack(spacing: 12) {
                 Label(product.category, systemImage: product.isService ? "wrench.and.screwdriver" : "shippingbox")
                 Text(product.brand.isEmpty ? "No brand" : product.brand)
+                if let material = product.material, !material.trimmed.isEmpty {
+                    Text(material)
+                }
                 Text(product.unit)
                 if let price = product.currentPrice {
                     Text(DecimalFormatter.currency(price))

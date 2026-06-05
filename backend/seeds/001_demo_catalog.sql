@@ -16,11 +16,11 @@ VALUES
   ('00000000-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000001', 'Install Service', 'service')
 ON CONFLICT (company_id, name) DO NOTHING;
 
-INSERT INTO products (id, company_id, brand_id, category_id, name, sku, size, color, unit, description, active, is_service)
+INSERT INTO products (id, company_id, brand_id, category_id, name, sku, size, color, material, unit, description, active, is_service)
 VALUES
-  ('00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000201', '60 inch white vanity', 'VAN-60-WHITE-001', '60 inch', 'white', 'each', 'Demo vanity for matcher tests', true, false),
-  ('00000000-0000-0000-0000-000000000302', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000202', 'Comfort height toilet', 'TOI-COMFORT-001', 'elongated', 'white', 'each', 'Demo toilet', true, false),
-  ('00000000-0000-0000-0000-000000000303', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000203', 'Bathroom basic install package', 'SVC-INSTALL-BATH-001', '', '', 'job', 'Demo install service', true, true)
+  ('00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000201', '60 inch white vanity', 'VAN-60-WHITE-001', '60 inch', 'white', 'painted plywood cabinet / ceramic top', 'each', 'Demo vanity for matcher tests', true, false),
+  ('00000000-0000-0000-0000-000000000302', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000202', 'Comfort height toilet', 'TOI-COMFORT-001', 'elongated', 'white', 'vitreous china', 'each', 'Demo toilet', true, false),
+  ('00000000-0000-0000-0000-000000000303', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000203', 'Bathroom basic install package', 'SVC-INSTALL-BATH-001', '', '', 'labor package', 'job', 'Demo install service', true, true)
 ON CONFLICT (company_id, sku) DO NOTHING;
 
 INSERT INTO product_prices (company_id, product_id, currency, unit_price, effective_from)

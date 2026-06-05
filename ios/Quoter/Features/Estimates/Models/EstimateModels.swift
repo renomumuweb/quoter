@@ -27,6 +27,10 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
         }
     }
 
+    var localizedTitle: String {
+        AppLanguage.localizedString(title)
+    }
+
     var shortTitle: String {
         switch self {
         case .kitchenRenovation: return "Kitchen"
@@ -39,6 +43,10 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
         case .doorsWindows: return "Doors & Windows"
         case .customProject: return "Custom"
         }
+    }
+
+    var localizedShortTitle: String {
+        AppLanguage.localizedString(shortTitle)
     }
 
     var systemImage: String {
@@ -72,7 +80,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Appliances",
                 "Trim / Finish Carpentry",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         case .bathroomRenovation:
             return [
@@ -88,7 +96,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Painting",
                 "Accessories",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         case .fullHouseRenovation:
             return [
@@ -110,7 +118,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Basement",
                 "Cleanup / Disposal",
                 "Project Management",
-                "Other"
+                "Other Category"
             ]
         case .condoRenovation:
             return [
@@ -127,7 +135,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Doors / Trim",
                 "Appliance Installation",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         case .basementRenovation:
             return [
@@ -145,7 +153,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Doors / Trim",
                 "Ceiling",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         case .bedroomRoomRenovation:
             return [
@@ -159,7 +167,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Trim / Baseboard",
                 "Window Trim",
                 "Cleanup",
-                "Other"
+                "Other Category"
             ]
         case .flooringProject:
             return [
@@ -173,7 +181,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Transitions",
                 "Furniture Moving",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         case .doorsWindows:
             return [
@@ -188,7 +196,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Caulking / Sealing",
                 "Painting / Touch-up",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         case .customProject:
             return [
@@ -199,7 +207,7 @@ enum RenovationType: String, CaseIterable, Codable, Identifiable {
                 "Subcontractor",
                 "Finishing",
                 "Cleanup / Disposal",
-                "Other"
+                "Other Category"
             ]
         }
     }
@@ -241,6 +249,13 @@ struct CostBreakdown: Codable, Hashable {
 
 struct EstimateItem: Codable, Identifiable, Hashable {
     var id: UUID
+    var productID: UUID?
+    var productNameSnapshot: String?
+    var skuSnapshot: String?
+    var brandSnapshot: String?
+    var productCategorySnapshot: String?
+    var materialSnapshot: String?
+    var unitPriceSnapshot: Decimal?
     var itemName: String
     var categoryID: UUID
     var description: String
@@ -252,6 +267,13 @@ struct EstimateItem: Codable, Identifiable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id
+        case productID = "productId"
+        case productNameSnapshot
+        case skuSnapshot
+        case brandSnapshot
+        case productCategorySnapshot
+        case materialSnapshot
+        case unitPriceSnapshot
         case itemName
         case categoryID = "categoryId"
         case description
@@ -264,6 +286,13 @@ struct EstimateItem: Codable, Identifiable, Hashable {
 
     init(
         id: UUID = UUID(),
+        productID: UUID? = nil,
+        productNameSnapshot: String? = nil,
+        skuSnapshot: String? = nil,
+        brandSnapshot: String? = nil,
+        productCategorySnapshot: String? = nil,
+        materialSnapshot: String? = nil,
+        unitPriceSnapshot: Decimal? = nil,
         itemName: String = "",
         categoryID: UUID,
         description: String = "",
@@ -274,6 +303,13 @@ struct EstimateItem: Codable, Identifiable, Hashable {
         selected: Bool = true
     ) {
         self.id = id
+        self.productID = productID
+        self.productNameSnapshot = productNameSnapshot
+        self.skuSnapshot = skuSnapshot
+        self.brandSnapshot = brandSnapshot
+        self.productCategorySnapshot = productCategorySnapshot
+        self.materialSnapshot = materialSnapshot
+        self.unitPriceSnapshot = unitPriceSnapshot
         self.itemName = itemName
         self.categoryID = categoryID
         self.description = description
@@ -286,7 +322,7 @@ struct EstimateItem: Codable, Identifiable, Hashable {
 
     var subtotal: Decimal {
         guard selected else { return 0 }
-        return DecimalFormatter.roundedMoney(quantity * costs.baseCost + costs.markup + costs.tax)
+        return DecimalFormatter.roundedMoney(quantity * costs.baseCost + costs.markup)
     }
 }
 
@@ -345,8 +381,18 @@ struct EstimateTemplate: Codable, Identifiable, Hashable {
         self.updatedAt = updatedAt
     }
 
-    var total: Decimal {
+    static let taxRate: Decimal = 0.13
+
+    var subtotal: Decimal {
         categories.reduce(0) { $0 + $1.selectedTotal }
+    }
+
+    var taxTotal: Decimal {
+        DecimalFormatter.roundedMoney(subtotal * Self.taxRate)
+    }
+
+    var total: Decimal {
+        subtotal + taxTotal
     }
 
     static func makeDefault(projectID: UUID?, type: RenovationType, name: String? = nil) -> EstimateTemplate {
@@ -391,6 +437,13 @@ struct EstimateTemplate: Codable, Identifiable, Hashable {
             let items = category.items.map { item in
                 EstimateItem(
                     id: UUID(),
+                    productID: item.productID,
+                    productNameSnapshot: item.productNameSnapshot,
+                    skuSnapshot: item.skuSnapshot,
+                    brandSnapshot: item.brandSnapshot,
+                    productCategorySnapshot: item.productCategorySnapshot,
+                    materialSnapshot: item.materialSnapshot,
+                    unitPriceSnapshot: item.unitPriceSnapshot,
                     itemName: item.itemName,
                     categoryID: categoryID,
                     description: item.description,

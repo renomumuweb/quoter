@@ -38,34 +38,36 @@ func seedDefaultCatalog(ctx context.Context, tx pgx.Tx, companyID uuid.UUID) err
 		sku      string
 		size     string
 		color    string
+		material string
 		unit     string
 		price    string
 		service  bool
 	}{
-		{"Vanity", "60 inch white vanity", "VAN-60-WHITE-001", "60 inch", "white", "each", "1299.00", false},
-		{"Toilet", "Comfort height toilet", "TOI-COMFORT-001", "elongated", "white", "each", "399.00", false},
-		{"Shower", "Matte black shower kit", "SHW-MB-001", "standard", "matte black", "each", "899.00", false},
-		{"Tile", "12 x 24 porcelain tile", "TILE-1224-POR-001", "12 x 24", "white", "sqft", "4.75", false},
-		{"Install Service", "Bathroom basic install package", "SVC-INSTALL-BATH-001", "", "", "job", "2500.00", true},
-		{"Demo Service", "Tub and tile demolition", "SVC-DEMO-TUB-001", "", "", "job", "950.00", true},
+		{"Vanity", "60 inch white vanity", "VAN-60-WHITE-001", "60 inch", "white", "painted plywood cabinet / ceramic top", "each", "1299.00", false},
+		{"Toilet", "Comfort height toilet", "TOI-COMFORT-001", "elongated", "white", "vitreous china", "each", "399.00", false},
+		{"Shower", "Matte black shower kit", "SHW-MB-001", "standard", "matte black", "tempered glass / brass trim", "each", "899.00", false},
+		{"Tile", "12 x 24 porcelain tile", "TILE-1224-POR-001", "12 x 24", "white", "porcelain", "sqft", "4.75", false},
+		{"Install Service", "Bathroom basic install package", "SVC-INSTALL-BATH-001", "", "", "labor package", "job", "2500.00", true},
+		{"Demo Service", "Tub and tile demolition", "SVC-DEMO-TUB-001", "", "", "labor package", "job", "950.00", true},
 	}
 
 	for _, item := range products {
 		var productID uuid.UUID
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO products (
-				company_id, brand_id, category_id, name, sku, size, color, unit, description, active, is_service
+				company_id, brand_id, category_id, name, sku, size, color, material, unit, description, active, is_service
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Seeded demo item', true, $9)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Seeded demo item', true, $10)
 			ON CONFLICT (company_id, sku) DO UPDATE SET
 				name = EXCLUDED.name,
 				category_id = EXCLUDED.category_id,
 				size = EXCLUDED.size,
 				color = EXCLUDED.color,
+				material = EXCLUDED.material,
 				unit = EXCLUDED.unit,
 				active = true
 			RETURNING id
-		`, companyID, brandID, categoryIDs[item.category], item.name, item.sku, item.size, item.color, item.unit, item.service).Scan(&productID); err != nil {
+		`, companyID, brandID, categoryIDs[item.category], item.name, item.sku, item.size, item.color, item.material, item.unit, item.service).Scan(&productID); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `

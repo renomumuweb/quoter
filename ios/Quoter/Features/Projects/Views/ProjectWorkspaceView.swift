@@ -59,9 +59,9 @@ private struct ProjectToolRow: View {
                 .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(LocalizedStringKey(subtitle))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

@@ -160,7 +160,7 @@ func (r *CatalogRepository) ListProducts(ctx context.Context, companyID uuid.UUI
 	if strings.TrimSpace(filter.Query) != "" {
 		args = append(args, "%"+strings.ToLower(strings.TrimSpace(filter.Query))+"%")
 		position := "$" + strconv.Itoa(len(args))
-		query += ` AND (lower(p.name) LIKE ` + position + ` OR lower(p.sku) LIKE ` + position + ` OR lower(COALESCE(b.name, '')) LIKE ` + position + ` OR lower(pc.name) LIKE ` + position + `)`
+		query += ` AND (lower(p.name) LIKE ` + position + ` OR lower(p.sku) LIKE ` + position + ` OR lower(COALESCE(b.name, '')) LIKE ` + position + ` OR lower(pc.name) LIKE ` + position + ` OR lower(COALESCE(p.material, '')) LIKE ` + position + ` OR lower(COALESCE(p.size, '')) LIKE ` + position + ` OR lower(COALESCE(p.color, '')) LIKE ` + position + `)`
 	}
 	if filter.CategoryID != nil {
 		args = append(args, *filter.CategoryID)

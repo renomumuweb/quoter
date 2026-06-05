@@ -1,6 +1,17 @@
 import SwiftUI
 import UIKit
 
+private func estimateLocalized(_ key: String) -> String {
+    AppLanguage.localizedString(key)
+}
+
+private func estimateDisplayName(_ value: String) -> String {
+    if value == "Other" {
+        return AppLanguage.localizedString("Other Category")
+    }
+    AppLanguage.localizedString(value)
+}
+
 struct EstimateTemplateView: View {
     @EnvironmentObject private var appState: AppState
     let project: Project
@@ -35,6 +46,7 @@ struct EstimateTemplateView: View {
                     } label: {
                         Label("Save Template", systemImage: "tray.and.arrow.down")
                     }
+                    .disabled(viewModel.isSavingTemplate)
 
                     Menu {
                         Button {
@@ -56,12 +68,17 @@ struct EstimateTemplateView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if let estimate = viewModel.estimate {
-                EstimateTotalBar(total: estimate.total, hiddenCount: viewModel.hiddenItemCount)
+                EstimateTotalBar(
+                    subtotal: estimate.subtotal,
+                    tax: estimate.taxTotal,
+                    total: estimate.total,
+                    hiddenCount: viewModel.hiddenItemCount
+                )
             }
         }
         .overlay(alignment: .bottom) {
             if let message = viewModel.statusMessage {
-                Text(message)
+                Text(estimateLocalized(message))
                     .font(.footnote.weight(.semibold))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -103,7 +120,7 @@ struct EstimateTemplateView: View {
             }
         }
         .alert("Save Current Estimate as Template", isPresented: $showingSaveTemplate) {
-            TextField("Template name", text: $templateName)
+            TextField(estimateLocalized("Template name"), text: $templateName)
             Button("Cancel", role: .cancel) {
                 templateName = ""
             }
@@ -117,7 +134,7 @@ struct EstimateTemplateView: View {
             Text("This saves the category structure and any reusable items for future projects.")
         }
         .sheet(item: $editingItem) { context in
-            EstimateItemEditorView(context: context) { item in
+            EstimateItemEditorView(context: context, products: viewModel.products) { item in
                 viewModel.saveItem(item, isNew: context.isNew)
             }
         }
@@ -162,7 +179,7 @@ struct EstimateTemplateView: View {
 
                             Spacer()
 
-                            Text(template.renovationType.shortTitle)
+                            Text(template.renovationType.localizedShortTitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
@@ -192,16 +209,16 @@ struct EstimateTemplateView: View {
             Section("Renovation Type") {
                 ForEach(RenovationType.allCases) { type in
                     Button {
-                        viewModel.createEstimate(type: type, name: type.title)
+                        viewModel.createEstimate(type: type, name: type.localizedTitle)
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: type.systemImage)
                                 .frame(width: 28)
                                 .foregroundStyle(.blue)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(type.title)
+                                Text(type.localizedTitle)
                                     .font(.body.weight(.medium))
-                                Text("\(type.defaultCategoryNames.count) broad categories")
+                                Text(String(format: estimateLocalized("%d categories"), type.defaultCategoryNames.count))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -230,14 +247,36 @@ struct EstimateTemplateView: View {
                     .textInputAutocapitalization(.never)
 
                 Toggle("Hide unselected items", isOn: $viewModel.hideUnselectedItems)
+
+                HStack {
+                    Button {
+                        showingNewCategory = true
+                    } label: {
+                        Label("Add Category", systemImage: "folder.badge.plus")
+                    }
+
+                    Spacer()
+
+                    Button {
+                        showingSaveTemplate = true
+                    } label: {
+                        Label(estimateLocalized(viewModel.isSavingTemplate ? "Saving" : "Save Template"), systemImage: "tray.and.arrow.down")
+                    }
+                    .disabled(viewModel.isSavingTemplate)
+                }
             }
 
             Section {
                 HStack {
-                    Label(estimate.wrappedValue.renovationType.title, systemImage: estimate.wrappedValue.renovationType.systemImage)
+                    Label(estimate.wrappedValue.renovationType.localizedTitle, systemImage: estimate.wrappedValue.renovationType.systemImage)
                     Spacer()
-                    Text(DecimalFormatter.currency(estimate.wrappedValue.total))
-                        .font(.headline)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(DecimalFormatter.currency(estimate.wrappedValue.total))
+                            .font(.headline)
+                        Text("Includes HST 13%")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -253,17 +292,17 @@ struct EstimateTemplateView: View {
                         },
                         onAddItem: {
                             let item = EstimateItem(categoryID: category.wrappedValue.id)
-                            editingItem = EstimateItemEditContext(item: item, categoryName: category.wrappedValue.name, isNew: true)
+                            editingItem = EstimateItemEditContext(item: item, categoryName: estimateDisplayName(category.wrappedValue.name), isNew: true)
                         },
                         onRenameCategory: {
-                            categoryName = category.wrappedValue.name
+                            categoryName = estimateDisplayName(category.wrappedValue.name)
                             renamingCategory = category.wrappedValue
                         },
                         onDeleteCategory: {
                             viewModel.deleteCategory(category.wrappedValue)
                         },
                         onEditItem: { item in
-                            editingItem = EstimateItemEditContext(item: item, categoryName: category.wrappedValue.name, isNew: false)
+                            editingItem = EstimateItemEditContext(item: item, categoryName: estimateDisplayName(category.wrappedValue.name), isNew: false)
                         },
                         onDuplicateItem: { item in
                             viewModel.duplicateItem(item, in: category.wrappedValue)
@@ -305,9 +344,9 @@ private struct EstimateCategoryDisclosure: View {
                         Image(systemName: isExpanded ? "chevron.down.circle.fill" : "chevron.right.circle")
                             .foregroundStyle(.blue)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(category.name)
+                            Text(estimateDisplayName(category.name))
                                 .font(.headline)
-                            Text("\(visibleItems.count) items")
+                            Text(String(format: estimateLocalized("%d items"), visibleItems.count))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -315,6 +354,14 @@ private struct EstimateCategoryDisclosure: View {
                         Text(DecimalFormatter.currency(category.selectedTotal))
                             .font(.subheadline.weight(.semibold))
                     }
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onAddItem()
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
                 }
                 .buttonStyle(.plain)
 
@@ -339,8 +386,13 @@ private struct EstimateCategoryDisclosure: View {
 
             if isExpanded {
                 if visibleItems.isEmpty {
-                    ContentUnavailableView("No Items", systemImage: "list.bullet.clipboard")
-                        .frame(maxWidth: .infinity)
+                    Button {
+                        onAddItem()
+                    } label: {
+                        Label("Add Item", systemImage: "plus.circle.fill")
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .buttonStyle(.borderedProminent)
                 } else {
                     ForEach($category.items) { $item in
                         if shouldShowItem(item) {
@@ -355,10 +407,13 @@ private struct EstimateCategoryDisclosure: View {
                     }
                 }
 
-                Button {
-                    onAddItem()
-                } label: {
-                    Label("Add Item", systemImage: "plus.circle.fill")
+                if !visibleItems.isEmpty {
+                    Button {
+                        onAddItem()
+                    } label: {
+                        Label("Add Item", systemImage: "plus.circle.fill")
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -374,11 +429,15 @@ private struct EstimateCategoryDisclosure: View {
         }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return true }
-        if category.name.localizedCaseInsensitiveContains(query) {
+        if category.name.localizedCaseInsensitiveContains(query)
+            || estimateDisplayName(category.name).localizedCaseInsensitiveContains(query) {
             return true
         }
         return item.itemName.localizedCaseInsensitiveContains(query)
             || item.description.localizedCaseInsensitiveContains(query)
+            || (item.skuSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
+            || (item.brandSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
+            || (item.materialSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
             || item.notes.localizedCaseInsensitiveContains(query)
     }
 }
@@ -404,9 +463,15 @@ private struct EstimateItemCard: View {
                 .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    TextField("Item Name", text: $item.itemName)
+                    TextField(estimateLocalized("Item Name"), text: $item.itemName)
                         .font(.headline)
                         .onSubmit(onPersist)
+                    if let catalogSummary = item.catalogSummary {
+                        Text(catalogSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                     if !item.notes.isEmpty {
                         Text(item.notes)
                             .font(.caption)
@@ -424,35 +489,34 @@ private struct EstimateItemCard: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 DecimalEntryField(title: "Qty", value: $item.quantity, keyboardType: .decimalPad, onCommit: onPersist)
                 TextEntryField(title: "Unit", text: $item.unit, onCommit: onPersist)
-                DecimalEntryField(title: "Material", value: $item.costs.materialCost, keyboardType: .decimalPad, onCommit: onPersist)
-                DecimalEntryField(title: "Labor", value: $item.costs.laborCost, keyboardType: .decimalPad, onCommit: onPersist)
-                DecimalEntryField(title: "Sub", value: $item.costs.subcontractorCost, keyboardType: .decimalPad, onCommit: onPersist)
-                TextEntryField(title: "Notes", text: $item.notes, onCommit: onPersist)
+                DecimalEntryField(title: "Material Cost", value: $item.costs.materialCost, keyboardType: .decimalPad, onCommit: onPersist)
+                DecimalEntryField(title: "Labor Cost", value: $item.costs.laborCost, keyboardType: .decimalPad, onCommit: onPersist)
+                DecimalEntryField(title: "Subcontractor Cost", value: $item.costs.subcontractorCost, keyboardType: .decimalPad, onCommit: onPersist)
+                DecimalEntryField(title: "Other Cost", value: $item.costs.otherCost, keyboardType: .decimalPad, onCommit: onPersist)
+                DecimalEntryField(title: "Markup", value: $item.costs.markup, keyboardType: .decimalPad, onCommit: onPersist)
             }
+
+            TextEntryField(title: "Notes", text: $item.notes, onCommit: onPersist)
 
             HStack {
                 Button {
                     onEdit()
                 } label: {
-                    Label("Details", systemImage: "slider.horizontal.3")
+                    Label("Edit", systemImage: "pencil")
                 }
 
                 Spacer()
 
-                Menu {
-                    Button {
-                        onDuplicate()
-                    } label: {
-                        Label("Copy Item", systemImage: "doc.on.doc")
-                    }
-                    Button(role: .destructive) {
-                        onDelete()
-                    } label: {
-                        Label("Delete Item", systemImage: "trash")
-                    }
+                Button {
+                    onDuplicate()
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.title3)
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete", systemImage: "trash")
                 }
             }
             .font(.footnote.weight(.semibold))
@@ -472,10 +536,10 @@ private struct DecimalEntryField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(estimateLocalized(title))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            TextField("0", text: $text)
+            TextField(estimateLocalized("0"), text: $text)
                 .keyboardType(keyboardType)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
@@ -512,10 +576,10 @@ private struct TextEntryField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(estimateLocalized(title))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            TextField(title, text: $text)
+            TextField(estimateLocalized(title), text: $text)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(onCommit)
                 .onChange(of: text) { _, _ in
@@ -528,11 +592,13 @@ private struct TextEntryField: View {
 private struct EstimateItemEditorView: View {
     @Environment(\.dismiss) private var dismiss
     let context: EstimateItemEditContext
+    let products: [Product]
     let onSave: (EstimateItem) -> Void
     @State private var item: EstimateItem
 
-    init(context: EstimateItemEditContext, onSave: @escaping (EstimateItem) -> Void) {
+    init(context: EstimateItemEditContext, products: [Product], onSave: @escaping (EstimateItem) -> Void) {
         self.context = context
+        self.products = products
         self.onSave = onSave
         _item = State(initialValue: context.item)
     }
@@ -540,10 +606,25 @@ private struct EstimateItemEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Catalog Product") {
+                    Picker("Product", selection: productSelection) {
+                        Text("Custom Item").tag(nil as UUID?)
+                        ForEach(products) { product in
+                            Text(product.productPickerTitle).tag(product.id as UUID?)
+                        }
+                    }
+
+                    if let catalogSummary = item.catalogSummary {
+                        Label(catalogSummary, systemImage: "shippingbox")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section(context.categoryName) {
                     Toggle("Selected", isOn: $item.selected)
-                    TextField("Item Name", text: $item.itemName)
-                    TextField("Description", text: $item.description, axis: .vertical)
+                    TextField(estimateLocalized("Item Name"), text: $item.itemName)
+                    TextField(estimateLocalized("Description"), text: $item.description, axis: .vertical)
                         .lineLimit(2...4)
                 }
 
@@ -554,7 +635,7 @@ private struct EstimateItemEditorView: View {
                             Text(unit.rawValue).tag(unit.rawValue)
                         }
                     }
-                    TextField("Custom Unit", text: $item.unit)
+                    TextField(estimateLocalized("Custom Unit"), text: $item.unit)
                 }
 
                 Section("Costs") {
@@ -563,11 +644,10 @@ private struct EstimateItemEditorView: View {
                     DecimalEntryField(title: "Subcontractor Cost", value: $item.costs.subcontractorCost, keyboardType: .decimalPad, onCommit: {})
                     DecimalEntryField(title: "Other Cost", value: $item.costs.otherCost, keyboardType: .decimalPad, onCommit: {})
                     DecimalEntryField(title: "Markup", value: $item.costs.markup, keyboardType: .decimalPad, onCommit: {})
-                    DecimalEntryField(title: "Tax", value: $item.costs.tax, keyboardType: .decimalPad, onCommit: {})
                 }
 
                 Section("Notes") {
-                    TextField("Notes", text: $item.notes, axis: .vertical)
+                    TextField(estimateLocalized("Notes"), text: $item.notes, axis: .vertical)
                         .lineLimit(3...6)
                 }
 
@@ -580,7 +660,7 @@ private struct EstimateItemEditorView: View {
                     }
                 }
             }
-            .navigationTitle(context.isNew ? "New Item" : "Edit Item")
+            .navigationTitle(estimateLocalized(context.isNew ? "New Item" : "Edit Item"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -596,31 +676,141 @@ private struct EstimateItemEditorView: View {
             }
         }
     }
+
+    private var productSelection: Binding<UUID?> {
+        Binding {
+            item.productID
+        } set: { productID in
+            if let productID,
+               let product = products.first(where: { $0.id == productID }) {
+                item.apply(product: product)
+            } else {
+                item.clearProductLink()
+            }
+        }
+    }
+}
+
+private extension EstimateItem {
+    var catalogSummary: String? {
+        guard productID != nil else { return nil }
+        var parts: [String] = []
+        if let skuSnapshot, !skuSnapshot.trimmedForEstimate.isEmpty {
+            parts.append(skuSnapshot)
+        }
+        if let brandSnapshot, !brandSnapshot.trimmedForEstimate.isEmpty {
+            parts.append(brandSnapshot)
+        }
+        if let productCategorySnapshot, !productCategorySnapshot.trimmedForEstimate.isEmpty {
+            parts.append(productCategorySnapshot)
+        }
+        if let materialSnapshot, !materialSnapshot.trimmedForEstimate.isEmpty {
+            parts.append(materialSnapshot)
+        }
+        if let unitPriceSnapshot {
+            parts.append(DecimalFormatter.currency(unitPriceSnapshot))
+        }
+        return parts.isEmpty ? productNameSnapshot : parts.joined(separator: " | ")
+    }
+
+    mutating func apply(product: Product) {
+        productID = product.id
+        productNameSnapshot = product.name
+        skuSnapshot = product.sku
+        brandSnapshot = product.brand.nilIfBlankForEstimate
+        productCategorySnapshot = product.category
+        materialSnapshot = product.material?.nilIfBlankForEstimate
+        unitPriceSnapshot = product.currentPrice
+        itemName = product.name
+        if let productDescription = product.description?.nilIfBlankForEstimate {
+            description = productDescription
+        }
+        unit = product.unit.trimmedForEstimate.isEmpty ? UnitType.each.rawValue : product.unit
+        if let currentPrice = product.currentPrice {
+            costs.materialCost = currentPrice
+        }
+    }
+
+    mutating func clearProductLink() {
+        productID = nil
+        productNameSnapshot = nil
+        skuSnapshot = nil
+        brandSnapshot = nil
+        productCategorySnapshot = nil
+        materialSnapshot = nil
+        unitPriceSnapshot = nil
+    }
+}
+
+private extension Product {
+    var productPickerTitle: String {
+        var details: [String] = []
+        if let material, !material.trimmedForEstimate.isEmpty {
+            details.append(material)
+        }
+        if !sku.trimmedForEstimate.isEmpty {
+            details.append(sku)
+        }
+        if let currentPrice {
+            details.append(DecimalFormatter.currency(currentPrice))
+        }
+        guard !details.isEmpty else { return name }
+        return "\(name) (\(details.joined(separator: " | ")))"
+    }
+}
+
+private extension String {
+    var trimmedForEstimate: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var nilIfBlankForEstimate: String? {
+        let value = trimmedForEstimate
+        return value.isEmpty ? nil : value
+    }
 }
 
 private struct EstimateTotalBar: View {
+    let subtotal: Decimal
+    let tax: Decimal
     let total: Decimal
     let hiddenCount: Int
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Estimate Total")
-                    .font(.caption)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 12) {
+                    totalColumn(title: "Subtotal", value: subtotal)
+                    totalColumn(title: "HST 13%", value: tax)
+                }
+                Text(estimateLocalized("Estimate Total"))
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
-                Text(DecimalFormatter.currency(total))
-                    .font(.title3.weight(.bold))
             }
             Spacer()
-            if hiddenCount > 0 {
-                Label("\(hiddenCount) hidden", systemImage: "eye.slash")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(DecimalFormatter.currency(total))
+                    .font(.title3.weight(.bold))
+                if hiddenCount > 0 {
+                    Label(String(format: estimateLocalized("%d hidden"), hiddenCount), systemImage: "eye.slash")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(.regularMaterial)
+    }
+
+    private func totalColumn(title: String, value: Decimal) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(estimateLocalized(title))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(DecimalFormatter.currency(value))
+                .font(.caption.weight(.semibold))
+        }
     }
 }
 
@@ -636,14 +826,17 @@ private struct EstimateItemEditContext: Identifiable {
 final class EstimateTemplateViewModel: ObservableObject {
     @Published var estimate: EstimateTemplate?
     @Published private(set) var reusableTemplates: [EstimateTemplate] = []
+    @Published private(set) var products: [Product] = []
     @Published var searchText = ""
     @Published var hideUnselectedItems = false
+    @Published private(set) var isSavingTemplate = false
     @Published var errorMessage: String?
     @Published var statusMessage: String?
 
     private let projectID: UUID
     private let store = EstimateStore()
     private var service: EstimateTemplateService?
+    private var productService: ProductService?
     private var expandedCategoryIDs: Set<UUID> = []
 
     init(projectID: UUID) {
@@ -653,6 +846,9 @@ final class EstimateTemplateViewModel: ObservableObject {
     func configure(apiClient: APIClient) {
         if service == nil {
             service = EstimateTemplateService(apiClient: apiClient)
+        }
+        if productService == nil {
+            productService = ProductService(apiClient: apiClient)
         }
     }
 
@@ -664,13 +860,22 @@ final class EstimateTemplateViewModel: ObservableObject {
     func load() async {
         do {
             estimate = try store.loadProjectEstimate(projectID: projectID)
-            if let service {
-                reusableTemplates = try await service.listTemplates()
-            } else {
-                reusableTemplates = try store.loadReusableTemplates()
-            }
             if let estimate {
                 expandedCategoryIDs = Set(estimate.categories.prefix(4).map(\.id))
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        do {
+            if let service, let productService {
+                async let loadedTemplates = service.listTemplates()
+                async let loadedProducts = productService.listProducts()
+                reusableTemplates = try await loadedTemplates
+                products = try await loadedProducts
+            } else {
+                reusableTemplates = try store.loadReusableTemplates()
             }
             errorMessage = nil
         } catch {
@@ -724,6 +929,8 @@ final class EstimateTemplateViewModel: ObservableObject {
         guard let estimate else { return }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
+        isSavingTemplate = true
+        defer { isSavingTemplate = false }
         do {
             if let service {
                 let saved = try await service.saveTemplate(estimate, name: name, projectID: projectID)
@@ -821,9 +1028,13 @@ final class EstimateTemplateViewModel: ObservableObject {
         }
         guard !query.isEmpty else { return true }
         return category.name.localizedCaseInsensitiveContains(query)
+            || estimateDisplayName(category.name).localizedCaseInsensitiveContains(query)
             || category.items.contains { item in
                 item.itemName.localizedCaseInsensitiveContains(query)
                     || item.description.localizedCaseInsensitiveContains(query)
+                    || (item.skuSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
+                    || (item.brandSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
+                    || (item.materialSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
                     || item.notes.localizedCaseInsensitiveContains(query)
             }
     }

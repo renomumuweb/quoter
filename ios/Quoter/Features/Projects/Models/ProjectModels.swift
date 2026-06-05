@@ -64,7 +64,8 @@ extension Project {
         guard !ids.isEmpty else { return "Other" }
 
         let names = ids.map { id in
-            serviceScopes.first { $0.id == id }?.title ?? id.replacingOccurrences(of: "_", with: " ").capitalized
+            let title = serviceScopes.first { $0.id == id }?.title ?? id.replacingOccurrences(of: "_", with: " ").capitalized
+            return AppLanguage.localizedString(title)
         }
         return names.joined(separator: ", ")
     }

@@ -45,9 +45,101 @@ paths:
       summary: Return the current user and company.
       responses:
         "200": { description: Current session }
+  /estimate-templates:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: List saved contractor estimate templates.
+      responses:
+        "200":
+          description: Estimate template list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EstimateTemplate"
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Save or replace a named contractor estimate template.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateTemplateInput"
+      responses:
+        "200": { description: Existing template replaced }
+        "201": { description: New template created }
+  /estimate-templates/{id}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Get a saved contractor estimate template.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Estimate template }
+    put:
+      security: [{ bearerAuth: [] }]
+      summary: Update a saved contractor estimate template.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateTemplateInput"
+      responses:
+        "200": { description: Estimate template updated }
+    delete:
+      security: [{ bearerAuth: [] }]
+      summary: Delete a saved contractor estimate template.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Estimate template deleted }
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    EstimateTemplate:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        name: { type: string }
+        renovation_type: { type: string }
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    EstimateTemplateInput:
+      type: object
+      required: [name, renovation_type, categories]
+      properties:
+        project_id: { type: string, format: uuid }
+        name: { type: string }
+        renovation_type: { type: string }
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

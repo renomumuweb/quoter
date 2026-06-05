@@ -52,6 +52,11 @@
 		B00000000000000000000043 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000043 /* AppLocalization.swift */; };
 		B00000000000000000000044 /* TutorialGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000044 /* TutorialGuideView.swift */; };
 		B00000000000000000000045 /* PDFMailComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000045 /* PDFMailComposer.swift */; };
+		B00000000000000000000046 /* EstimateModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000046 /* EstimateModels.swift */; };
+		B00000000000000000000047 /* EstimateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000047 /* EstimateStore.swift */; };
+		B00000000000000000000048 /* EstimateTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000048 /* EstimateTemplateView.swift */; };
+		B00000000000000000000049 /* ProjectWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* ProjectWorkspaceView.swift */; };
+		B00000000000000000000050 /* EstimateTemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000050 /* EstimateTemplateService.swift */; };
 		B00000000000000000000903 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000903 /* Assets.xcassets */; };
 		B00000000000000000000940 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000940 /* Localizable.strings */; };
 /* End PBXBuildFile section */
@@ -103,6 +108,11 @@
 		F00000000000000000000043 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Localization/AppLocalization.swift; sourceTree = "<group>"; };
 		F00000000000000000000044 /* TutorialGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Settings/Views/TutorialGuideView.swift; sourceTree = "<group>"; };
 		F00000000000000000000045 /* PDFMailComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Contracts/PDF/PDFMailComposer.swift; sourceTree = "<group>"; };
+		F00000000000000000000046 /* EstimateModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Estimates/Models/EstimateModels.swift; sourceTree = "<group>"; };
+		F00000000000000000000047 /* EstimateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Estimates/Models/EstimateStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000048 /* EstimateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Estimates/Views/EstimateTemplateView.swift; sourceTree = "<group>"; };
+		F00000000000000000000049 /* ProjectWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Projects/Views/ProjectWorkspaceView.swift; sourceTree = "<group>"; };
+		F00000000000000000000050 /* EstimateTemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Estimates/Models/EstimateTemplateService.swift; sourceTree = "<group>"; };
 		F00000000000000000000941 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		F00000000000000000000942 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		F00000000000000000000943 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -151,6 +161,11 @@
 				F00000000000000000000043 /* AppLocalization.swift */,
 				F00000000000000000000006 /* SettingsView.swift */,
 				F00000000000000000000044 /* TutorialGuideView.swift */,
+				F00000000000000000000046 /* EstimateModels.swift */,
+				F00000000000000000000047 /* EstimateStore.swift */,
+				F00000000000000000000050 /* EstimateTemplateService.swift */,
+				F00000000000000000000048 /* EstimateTemplateView.swift */,
+				F00000000000000000000049 /* ProjectWorkspaceView.swift */,
 				F00000000000000000000007 /* LocalDraftStore.swift */,
 				F00000000000000000000008 /* KeychainStore.swift */,
 				F00000000000000000000009 /* DrawingWorkspaceView.swift */,
@@ -315,6 +330,11 @@
 				B00000000000000000000043 /* AppLocalization.swift in Sources */,
 				B00000000000000000000044 /* TutorialGuideView.swift in Sources */,
 				B00000000000000000000045 /* PDFMailComposer.swift in Sources */,
+				B00000000000000000000046 /* EstimateModels.swift in Sources */,
+				B00000000000000000000047 /* EstimateStore.swift in Sources */,
+				B00000000000000000000048 /* EstimateTemplateView.swift in Sources */,
+				B00000000000000000000049 /* ProjectWorkspaceView.swift in Sources */,
+				B00000000000000000000050 /* EstimateTemplateService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

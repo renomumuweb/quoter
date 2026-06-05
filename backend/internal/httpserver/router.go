@@ -2,7 +2,7 @@ package httpserver
 
 import (
 	"context"
-	"log/slog" 
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -90,6 +90,12 @@ func registerBusinessRoutes(router *gin.RouterGroup, handler handlers.BusinessHa
 	router.GET("/projects/:id", handler.GetProject)
 	router.PUT("/projects/:id", handler.UpdateProject)
 	router.DELETE("/projects/:id", handler.DeleteProject)
+
+	router.GET("/estimate-templates", handler.ListEstimateTemplates)
+	router.POST("/estimate-templates", handler.CreateEstimateTemplate)
+	router.GET("/estimate-templates/:id", handler.GetEstimateTemplate)
+	router.PUT("/estimate-templates/:id", handler.UpdateEstimateTemplate)
+	router.DELETE("/estimate-templates/:id", handler.DeleteEstimateTemplate)
 
 	router.GET("/projects/:id/drawing", handler.GetDrawing)
 	router.PUT("/projects/:id/drawing", handler.UpdateDrawing)

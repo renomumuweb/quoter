@@ -15,7 +15,7 @@ struct ProjectListView: View {
                     ContentUnavailableView {
                         Label("No Projects", systemImage: "folder")
                     } description: {
-                        Text(viewModel.customers.isEmpty ? "Create a customer first, then start a project." : "Create a project to open the drawing workspace.")
+                        Text(viewModel.customers.isEmpty ? "Create a customer first, then start a project." : "Create a project to open drawing and estimate tools.")
                     } actions: {
                         Button("New Project") {
                             showingNewProject = true
@@ -27,7 +27,7 @@ struct ProjectListView: View {
                     List {
                         ForEach(viewModel.projects) { project in
                             NavigationLink {
-                                DrawingWorkspaceView(project: project)
+                                ProjectWorkspaceView(project: project)
                             } label: {
                                 ProjectRow(project: project)
                                     .swipeActions(edge: .leading) {

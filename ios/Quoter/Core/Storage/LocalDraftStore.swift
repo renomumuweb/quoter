@@ -15,6 +15,12 @@ struct LocalDraftStore {
         return try Data(contentsOf: url)
     }
 
+    func delete(name: String) throws {
+        let url = try fileURL(name: name)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+    }
+
     private func fileURL(name: String) throws -> URL {
         let root = try FileManager.default.url(
             for: .applicationSupportDirectory,

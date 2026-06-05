@@ -47,8 +47,12 @@ extension Project {
         ProjectServiceScope(id: "kitchen", title: "Kitchen", icon: "cooktop"),
         ProjectServiceScope(id: "bathroom", title: "Bathroom", icon: "shower"),
         ProjectServiceScope(id: "whole_home", title: "Whole Home", icon: "house"),
+        ProjectServiceScope(id: "condo", title: "Condo", icon: "building.2"),
+        ProjectServiceScope(id: "basement", title: "Basement", icon: "stairs"),
+        ProjectServiceScope(id: "room", title: "Room", icon: "bed.double"),
         ProjectServiceScope(id: "flooring", title: "Flooring", icon: "square.grid.3x3"),
         ProjectServiceScope(id: "doors_windows", title: "Doors/Windows", icon: "door.left.hand.open"),
+        ProjectServiceScope(id: "custom", title: "Custom", icon: "slider.horizontal.3"),
         ProjectServiceScope(id: "countertops", title: "Countertops", icon: "rectangle.center.inset.filled")
     ]
 

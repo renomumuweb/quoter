@@ -9,7 +9,7 @@ private func estimateDisplayName(_ value: String) -> String {
     if value == "Other" {
         return AppLanguage.localizedString("Other Category")
     }
-    AppLanguage.localizedString(value)
+    return AppLanguage.localizedString(value)
 }
 
 struct EstimateTemplateView: View {

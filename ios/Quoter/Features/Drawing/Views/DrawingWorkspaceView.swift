@@ -78,7 +78,7 @@ struct DrawingWorkspaceView: View {
                     .background(Color(.secondarySystemGroupedBackground))
             }
         }
-        .navigationTitle(project?.title ?? "Drawing Workspace")
+        .navigationTitle(project?.title ?? AppLanguage.localizedString("Drawing Workspace"))
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             if let message = viewModel.errorMessage {
@@ -298,10 +298,10 @@ struct DrawingWorkspaceView: View {
                     .frame(width: 28, height: 28)
                 Spacer()
             } else {
-                Label(project?.title ?? "Preview Project", systemImage: "folder")
+                Label(project?.title ?? AppLanguage.localizedString("Preview Project"), systemImage: "folder")
                     .font(.headline)
                 if let project {
-                    Text(project.customerName ?? "Customer")
+                    Text(project.customerName ?? AppLanguage.localizedString("Customer"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(Project.serviceScopeTitle(project.roomType))
@@ -347,7 +347,7 @@ struct DrawingWorkspaceView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(project == nil)
 
-                Text(project == nil ? "Preview mode uses local sample data." : "Objects and annotations are saved to the self-hosted API.")
+                Text(LocalizedStringKey(project == nil ? "Preview mode uses local sample data." : "Objects and annotations are saved to the self-hosted API."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -372,7 +372,7 @@ struct DrawingWorkspaceView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.bordered)
-                    .accessibilityLabel("Collapse Inspector")
+                    .accessibilityLabel(LocalizedStringKey("Collapse Inspector"))
                 }
 
                 HStack {
@@ -449,7 +449,7 @@ struct DrawingWorkspaceView: View {
                 Image(systemName: "chevron.left")
             }
             .buttonStyle(.bordered)
-            .accessibilityLabel("Expand Inspector")
+            .accessibilityLabel(LocalizedStringKey("Expand Inspector"))
 
             Divider()
 
@@ -460,15 +460,15 @@ struct DrawingWorkspaceView: View {
             if selectedObjectID != nil {
                 Image(systemName: "shippingbox")
                     .foregroundStyle(.blue)
-                    .accessibilityLabel("Object selected")
+                    .accessibilityLabel(LocalizedStringKey("Object selected"))
             } else if selectedAnnotationID != nil {
                 Image(systemName: "note.text")
                     .foregroundStyle(.orange)
-                    .accessibilityLabel("Annotation selected")
+                    .accessibilityLabel(LocalizedStringKey("Annotation selected"))
             } else {
                 Image(systemName: "hand.tap")
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel("Nothing selected")
+                    .accessibilityLabel(LocalizedStringKey("Nothing selected"))
             }
 
             Spacer()
@@ -498,7 +498,7 @@ private struct ObjectInspector: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(object.objectType.capitalized)
+            Text(AppLanguage.localizedKnownSystemString(object.objectType))
                 .font(.title3.weight(.semibold))
 
             TextField("Object Type", text: $object.objectType)
@@ -651,7 +651,7 @@ private struct AnnotationInspector: View {
             Picker("Linked Object", selection: $annotation.linkedObjectID) {
                 Text("None").tag(nil as UUID?)
                 ForEach(objects) { object in
-                    Text(object.objectType.capitalized).tag(object.id as UUID?)
+                    Text(AppLanguage.localizedKnownSystemString(object.objectType)).tag(object.id as UUID?)
                 }
             }
             Toggle("Export to PDF", isOn: $annotation.exportToPDF)
@@ -732,7 +732,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             brands = try await loadedBrands
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -745,7 +745,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             annotations = response.annotations
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -777,7 +777,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             errorMessage = nil
             return object
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
             return nil
         }
     }
@@ -805,7 +805,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             replace(updated, in: &objects)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -819,7 +819,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             objects.removeAll { $0.id == object.id }
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -828,7 +828,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             projectID: project?.id,
             drawingID: drawing?.id,
             annotationType: "note",
-            text: "New note",
+            text: AppLanguage.localizedString("New note"),
             x: 0.4,
             y: 0.28,
             width: 0.24,
@@ -847,7 +847,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             errorMessage = nil
             return annotation
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
             return nil
         }
     }
@@ -862,7 +862,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             replace(updated, in: &annotations)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -876,7 +876,7 @@ final class DrawingWorkspaceViewModel: ObservableObject {
             annotations.removeAll { $0.id == annotation.id }
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 

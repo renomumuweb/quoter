@@ -52,7 +52,7 @@ struct QuotePreviewView: View {
                     }
 
                     if let quote = viewModel.createdQuote {
-                        Label("Created \(quote.quoteNumber) · \(quote.status.capitalized)", systemImage: "checkmark.circle")
+                        Label("\(copy("Created")) \(quote.quoteNumber) · \(AppLanguage.localizedStatus(quote.status, language: localization.language))", systemImage: "checkmark.circle")
                             .foregroundStyle(quote.status == "confirmed" ? .green : .blue)
                     }
 
@@ -156,15 +156,15 @@ struct QuotePreviewView: View {
     }
 
     private var mailSubject: String {
-        localization.language == .simplifiedChinese ? "报价 PDF" : "Quote PDF"
+        copy("Quote PDF")
     }
 
     private var mailBody: String {
-        localization.language == .simplifiedChinese ? "您好，附件是已生成的报价 PDF。" : "Hello, the generated quote PDF is attached."
+        copy("Hello, the generated quote PDF is attached.")
     }
 
     private func generatePDF(for preview: QuotePreview) {
-        let title = viewModel.createdQuote?.quoteNumber ?? (localization.language == .simplifiedChinese ? "报价预览" : "Quote Preview")
+        let title = viewModel.createdQuote?.quoteNumber ?? copy("Quote Preview")
         do {
             pdfURL = try PDFGenerator().makeQuotePDF(
                 title: title,
@@ -179,16 +179,16 @@ struct QuotePreviewView: View {
 
     private func emailPDF() {
         guard let pdfURL = pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
-            viewModel.errorMessage = localization.language == .simplifiedChinese ? "请先生成 PDF。" : "Generate a PDF first."
+            viewModel.errorMessage = copy("Generate a PDF first.")
             return
         }
         let recipient = pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isValidEmail(recipient) else {
-            viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮箱格式不正确，请检查收件人。" : "The recipient email is invalid."
+            viewModel.errorMessage = copy("The recipient email is invalid.")
             return
         }
         guard PDFMailComposer.canSendMail else {
-            viewModel.errorMessage = localization.language == .simplifiedChinese ? "此设备没有配置系统邮件账户，无法直接发送。你仍然可以使用“分享 PDF”。" : "Mail is not configured on this device. You can still use Share PDF."
+            viewModel.errorMessage = copy("Mail is not configured on this device. You can still use Share PDF.")
             return
         }
         viewModel.errorMessage = nil
@@ -200,13 +200,13 @@ struct QuotePreviewView: View {
         case let .success(mailResult):
             switch mailResult {
             case .sent:
-                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件已发送。" : "Email sent."
+                viewModel.errorMessage = copy("Email sent.")
             case .saved:
-                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件已存为草稿。" : "Email saved as a draft."
+                viewModel.errorMessage = copy("Email saved as a draft.")
             case .cancelled:
                 viewModel.errorMessage = nil
             case .failed:
-                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件发送失败，请重试或使用分享 PDF。" : "Email failed. Please retry or use Share PDF."
+                viewModel.errorMessage = copy("Email failed. Please retry or use Share PDF.")
             default:
                 viewModel.errorMessage = nil
             }
@@ -216,10 +216,11 @@ struct QuotePreviewView: View {
     }
 
     private func localizedPDFError(_ prefix: String, error: Error) -> String {
-        if localization.language == .simplifiedChinese {
-            return "\(prefix == "Email failed" ? "邮件发送失败" : "PDF 导出失败")：\(error.localizedDescription)"
-        }
-        return "\(prefix): \(error.localizedDescription)"
+        localization.language == .english ? "\(copy(prefix)): \(error.localizedDescription)" : copy(prefix)
+    }
+
+    private func copy(_ key: String) -> String {
+        AppLanguage.localizedString(key, language: localization.language)
     }
 
     private func isValidEmail(_ email: String) -> Bool {
@@ -230,6 +231,7 @@ struct QuotePreviewView: View {
 }
 
 private struct QuotePreviewContent: View {
+    @EnvironmentObject private var localization: AppLocalization
     let preview: QuotePreview
 
     var body: some View {
@@ -237,7 +239,7 @@ private struct QuotePreviewContent: View {
             if !preview.warnings.isEmpty {
                 Section("Warnings") {
                     ForEach(preview.warnings) { warning in
-                        Label(warning.message, systemImage: "exclamationmark.triangle")
+                        Label(warning.localizedMessage(language: localization.language), systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
                 }
@@ -259,7 +261,7 @@ private struct QuotePreviewContent: View {
                             }
                             HStack(spacing: 12) {
                                 Text(item.skuSnapshot)
-                                Text("Qty \(NSDecimalNumber(decimal: item.quantity).stringValue)")
+                                Text("\(AppLanguage.localizedString("Qty", language: localization.language)) \(NSDecimalNumber(decimal: item.quantity).stringValue)")
                                 Text(DecimalFormatter.currency(item.unitPriceSnapshot))
                             }
                             .font(.caption)
@@ -283,6 +285,19 @@ private struct QuotePreviewContent: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+}
+
+private extension UnboundQuoteWarning {
+    func localizedMessage(language: AppLanguage) -> String {
+        let objectName = AppLanguage.localizedKnownSystemString(objectType, language: language)
+        if message.hasPrefix("Unbound product object:") {
+            return AppLanguage.localizedFormat("Unbound product object: %@", language: language, objectName)
+        }
+        if message.hasPrefix("Missing active price for") {
+            return AppLanguage.localizedFormat("Missing active price for %@", language: language, objectName)
+        }
+        return AppLanguage.localizedKnownSystemString(message, language: language)
     }
 }
 
@@ -317,7 +332,7 @@ final class QuotePreviewViewModel: ObservableObject {
             errorMessage = nil
             await previewSelectedProject()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -328,7 +343,7 @@ final class QuotePreviewViewModel: ObservableObject {
             createdQuote = nil
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -354,7 +369,7 @@ final class QuotePreviewViewModel: ObservableObject {
             )
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -364,49 +379,28 @@ final class QuotePreviewViewModel: ObservableObject {
             createdQuote = try await quoteService.confirmQuote(id: quoteID)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
     func pdfLines(for preview: QuotePreview, language: AppLanguage) -> [String] {
-        if language == .simplifiedChinese {
-            var lines = [
-                "项目 ID：\(uuidText(preview.projectID, language: language))",
-                "客户 ID：\(uuidText(preview.customerID, language: language))",
-                "货币：\(text(preview.currency, language: language))"
-            ]
-            if !preview.warnings.isEmpty {
-                lines.append("警告：")
-                lines.append(contentsOf: preview.warnings.map { "- \($0.message)" })
-            }
-            lines.append("明细：")
-            lines.append(contentsOf: preview.items.map { item in
-                "- \(item.productNameSnapshot) / SKU \(item.skuSnapshot) / 数量 \(NSDecimalNumber(decimal: item.quantity).stringValue) / 单价 \(DecimalFormatter.currency(item.unitPriceSnapshot)) / 小计 \(DecimalFormatter.currency(item.lineTotal))"
-            })
-            lines.append("小计：\(DecimalFormatter.currency(preview.subtotal))")
-            lines.append("折扣：\(DecimalFormatter.currency(preview.discountTotal))")
-            lines.append("税费：\(DecimalFormatter.currency(preview.taxTotal))")
-            lines.append("总计：\(DecimalFormatter.currency(preview.total))")
-            return lines
-        }
-
         var lines = [
-            "Project ID: \(uuidText(preview.projectID, language: language))",
-            "Customer ID: \(uuidText(preview.customerID, language: language))",
-            "Currency: \(text(preview.currency, language: language))"
+            "\(AppLanguage.localizedString("Project ID", language: language)): \(uuidText(preview.projectID, language: language))",
+            "\(AppLanguage.localizedString("Customer ID", language: language)): \(uuidText(preview.customerID, language: language))",
+            "\(AppLanguage.localizedString("Currency", language: language)): \(text(preview.currency, language: language))"
         ]
         if !preview.warnings.isEmpty {
-            lines.append("Warnings:")
-            lines.append(contentsOf: preview.warnings.map { "- \($0.message)" })
+            lines.append("\(AppLanguage.localizedString("Warnings", language: language)):")
+            lines.append(contentsOf: preview.warnings.map { "- \($0.localizedMessage(language: language))" })
         }
-        lines.append("Items:")
+        lines.append("\(AppLanguage.localizedString("Items", language: language)):")
         lines.append(contentsOf: preview.items.map { item in
-            "- \(item.productNameSnapshot) / SKU \(item.skuSnapshot) / Qty \(NSDecimalNumber(decimal: item.quantity).stringValue) / Unit \(DecimalFormatter.currency(item.unitPriceSnapshot)) / Total \(DecimalFormatter.currency(item.lineTotal))"
+            "- \(item.productNameSnapshot) / SKU \(item.skuSnapshot) / \(AppLanguage.localizedString("Qty", language: language)) \(NSDecimalNumber(decimal: item.quantity).stringValue) / \(AppLanguage.localizedString("Unit", language: language)) \(DecimalFormatter.currency(item.unitPriceSnapshot)) / \(AppLanguage.localizedString("Total", language: language)) \(DecimalFormatter.currency(item.lineTotal))"
         })
-        lines.append("Subtotal: \(DecimalFormatter.currency(preview.subtotal))")
-        lines.append("Discount: \(DecimalFormatter.currency(preview.discountTotal))")
-        lines.append("Tax: \(DecimalFormatter.currency(preview.taxTotal))")
-        lines.append("Total: \(DecimalFormatter.currency(preview.total))")
+        lines.append("\(AppLanguage.localizedString("Subtotal", language: language)): \(DecimalFormatter.currency(preview.subtotal))")
+        lines.append("\(AppLanguage.localizedString("Discount", language: language)): \(DecimalFormatter.currency(preview.discountTotal))")
+        lines.append("\(AppLanguage.localizedString("Tax", language: language)): \(DecimalFormatter.currency(preview.taxTotal))")
+        lines.append("\(AppLanguage.localizedString("Total", language: language)): \(DecimalFormatter.currency(preview.total))")
         return lines
     }
 
@@ -414,12 +408,12 @@ final class QuotePreviewViewModel: ObservableObject {
         if let id = id {
             return id.uuidString
         }
-        return language == .simplifiedChinese ? "未提供" : "Not provided"
+        return AppLanguage.localizedString("Not provided", language: language)
     }
 
     private func text(_ value: String?, language: AppLanguage) -> String {
         guard let value = value, !value.isEmpty else {
-            return language == .simplifiedChinese ? "未提供" : "Not provided"
+            return AppLanguage.localizedString("Not provided", language: language)
         }
         return value
     }

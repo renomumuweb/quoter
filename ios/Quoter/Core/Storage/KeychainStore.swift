@@ -56,7 +56,7 @@ enum KeychainError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .unhandled(status):
-            return "Keychain error \(status)"
+            return AppLanguage.localizedFormat("Keychain error %@", "\(status)")
         }
     }
 }

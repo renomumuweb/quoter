@@ -15,7 +15,7 @@ struct ProjectListView: View {
                     ContentUnavailableView {
                         Label("No Projects", systemImage: "folder")
                     } description: {
-                        Text(viewModel.customers.isEmpty ? "Create a customer first, then start a project." : "Create a project to open drawing and estimate tools.")
+                        Text(LocalizedStringKey(viewModel.customers.isEmpty ? "Create a customer first, then start a project." : "Create a project to open drawing and estimate tools."))
                     } actions: {
                         Button("New Project") {
                             showingNewProject = true
@@ -95,16 +95,19 @@ private struct ProjectRow: View {
                 Text(project.title)
                     .font(.headline)
                 Spacer()
-                Text(project.status.capitalized)
+                Text(AppLanguage.localizedStatus(project.status))
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Color.blue.opacity(0.12), in: Capsule())
             }
             HStack(spacing: 12) {
-                Label(project.customerName ?? "Customer", systemImage: "person")
+                Label(project.customerName ?? AppLanguage.localizedString("Customer"), systemImage: "person")
                 Label(Project.serviceScopeTitle(project.roomType), systemImage: "square.grid.2x2")
-                Text("Updated \(project.updatedAt, style: .date)")
+                HStack(spacing: 2) {
+                    Text("Updated")
+                    Text(project.updatedAt, style: .date)
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -160,7 +163,7 @@ private struct ProjectFormView: View {
                             Button {
                                 toggle(scope.id)
                             } label: {
-                                Label(scope.title, systemImage: scope.icon)
+                                Label(LocalizedStringKey(scope.title), systemImage: scope.icon)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.bordered)
@@ -178,19 +181,21 @@ private struct ProjectFormView: View {
                     }
                 }
             }
-            .navigationTitle(title)
+            .navigationTitle(LocalizedStringKey(title))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "Saving" : "Save") {
+                    Button {
                         Task {
                             isSaving = true
                             await onSave(request)
                             isSaving = false
                             dismiss()
                         }
+                    } label: {
+                        Text(LocalizedStringKey(isSaving ? "Saving" : "Save"))
                     }
                     .disabled(customers.isEmpty || projectTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                 }
@@ -252,7 +257,7 @@ final class ProjectListViewModel: ObservableObject {
             projects = try await loadedProjects
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -263,7 +268,7 @@ final class ProjectListViewModel: ObservableObject {
             projects.insert(project, at: 0)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -276,7 +281,7 @@ final class ProjectListViewModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -289,7 +294,7 @@ final class ProjectListViewModel: ObservableObject {
                 projects.removeAll { $0.id == project.id }
                 errorMessage = nil
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = AppLanguage.localizedErrorDescription(error)
             }
         }
     }

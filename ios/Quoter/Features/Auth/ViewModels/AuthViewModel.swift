@@ -8,15 +8,15 @@ final class AuthViewModel: ObservableObject {
     func validate(email: String, password: String, name: String? = nil) -> Bool {
         validationMessage = nil
         if let name, name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            validationMessage = "Name is required."
+            validationMessage = AppLanguage.localizedString("Name is required.")
             return false
         }
         if !email.contains("@") {
-            validationMessage = "Enter a valid email."
+            validationMessage = AppLanguage.localizedString("Enter a valid email.")
             return false
         }
         if password.count < 10 {
-            validationMessage = "Password must be at least 10 characters."
+            validationMessage = AppLanguage.localizedString("Password must be at least 10 characters.")
             return false
         }
         return true

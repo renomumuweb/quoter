@@ -122,33 +122,37 @@ struct DrawingResponse: Codable, Hashable {
 }
 
 extension DrawingObject {
-    static let preview = DrawingObject(
-        objectType: "vanity",
-        x: 0.42,
-        y: 0.38,
-        width: 0.2,
-        height: 0.12,
-        rotation: 0,
-        quantity: 1,
-        unit: "each",
-        discountAmount: 0,
-        installationFee: 150,
-        notes: "60 inch vanity wall",
-        isQuoteEnabled: true,
-        isContractVisible: true
-    )
+    static var preview: DrawingObject {
+        DrawingObject(
+            objectType: "vanity",
+            x: 0.42,
+            y: 0.38,
+            width: 0.2,
+            height: 0.12,
+            rotation: 0,
+            quantity: 1,
+            unit: "each",
+            discountAmount: 0,
+            installationFee: 150,
+            notes: AppLanguage.localizedString("60 inch vanity wall"),
+            isQuoteEnabled: true,
+            isContractVisible: true
+        )
+    }
 }
 
 extension DrawingAnnotation {
-    static let preview = DrawingAnnotation(
-        annotationType: "dimension",
-        text: "60 inch white vanity",
-        x: 0.4,
-        y: 0.28,
-        width: 0.24,
-        height: 0.06,
-        rotation: 0,
-        exportToPDF: true,
-        showInContract: true
-    )
+    static var preview: DrawingAnnotation {
+        DrawingAnnotation(
+            annotationType: "dimension",
+            text: AppLanguage.localizedString("60 inch white vanity"),
+            x: 0.4,
+            y: 0.28,
+            width: 0.24,
+            height: 0.06,
+            rotation: 0,
+            exportToPDF: true,
+            showInContract: true
+        )
+    }
 }

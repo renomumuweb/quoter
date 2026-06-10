@@ -31,7 +31,7 @@ struct SettingsView: View {
             Section("Account") {
                 LabeledContent("Name", value: session.currentUser?.name ?? "")
                 LabeledContent("Email", value: session.currentUser?.email ?? "")
-                LabeledContent("Role", value: session.currentUser?.role ?? "")
+                LabeledContent("Role", value: AppLanguage.localizedKnownSystemString(session.currentUser?.role ?? "", language: localization.language))
                 LabeledContent("Company", value: session.companyName)
             }
 

@@ -61,11 +61,11 @@ extension Project {
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        guard !ids.isEmpty else { return "Other" }
+        guard !ids.isEmpty else { return AppLanguage.localizedString("Other") }
 
         let names = ids.map { id in
             let title = serviceScopes.first { $0.id == id }?.title ?? id.replacingOccurrences(of: "_", with: " ").capitalized
-            return AppLanguage.localizedString(title)
+            return AppLanguage.localizedKnownSystemString(title)
         }
         return names.joined(separator: ", ")
     }

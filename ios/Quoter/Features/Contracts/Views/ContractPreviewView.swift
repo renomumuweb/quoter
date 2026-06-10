@@ -60,7 +60,7 @@ struct ContractPreviewView: View {
                                         VStack(alignment: .leading) {
                                             Text(contract.contractNumber)
                                                 .font(.headline)
-                                            Text(contract.status.capitalized)
+                                            Text(AppLanguage.localizedStatus(contract.status, language: localization.language))
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -145,17 +145,11 @@ struct ContractPreviewView: View {
     }
 
     private var mailSubject: String {
-        if localization.language == .simplifiedChinese {
-            return "合同 PDF"
-        }
-        return "Contract PDF"
+        copy("Contract PDF")
     }
 
     private var mailBody: String {
-        if localization.language == .simplifiedChinese {
-            return "您好，附件是已生成的合同 PDF。"
-        }
-        return "Hello, the generated contract PDF is attached."
+        copy("Hello, the generated contract PDF is attached.")
     }
 
     private func generatePDF(for contract: Contract) {
@@ -173,16 +167,16 @@ struct ContractPreviewView: View {
 
     private func emailPDF() {
         guard let pdfURL = pdfURL, FileManager.default.fileExists(atPath: pdfURL.path) else {
-            viewModel.errorMessage = localization.language == .simplifiedChinese ? "请先生成 PDF。" : "Generate a PDF first."
+            viewModel.errorMessage = copy("Generate a PDF first.")
             return
         }
         let recipient = pdfRecipient.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isValidEmail(recipient) else {
-            viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮箱格式不正确，请检查收件人。" : "The recipient email is invalid."
+            viewModel.errorMessage = copy("The recipient email is invalid.")
             return
         }
         guard PDFMailComposer.canSendMail else {
-            viewModel.errorMessage = localization.language == .simplifiedChinese ? "此设备没有配置系统邮件账户，无法直接发送。你仍然可以使用“分享 PDF”。" : "Mail is not configured on this device. You can still use Share PDF."
+            viewModel.errorMessage = copy("Mail is not configured on this device. You can still use Share PDF.")
             return
         }
         viewModel.errorMessage = nil
@@ -194,13 +188,13 @@ struct ContractPreviewView: View {
         case let .success(mailResult):
             switch mailResult {
             case .sent:
-                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件已发送。" : "Email sent."
+                viewModel.errorMessage = copy("Email sent.")
             case .saved:
-                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件已存为草稿。" : "Email saved as a draft."
+                viewModel.errorMessage = copy("Email saved as a draft.")
             case .cancelled:
                 viewModel.errorMessage = nil
             case .failed:
-                viewModel.errorMessage = localization.language == .simplifiedChinese ? "邮件发送失败，请重试或使用分享 PDF。" : "Email failed. Please retry or use Share PDF."
+                viewModel.errorMessage = copy("Email failed. Please retry or use Share PDF.")
             default:
                 viewModel.errorMessage = nil
             }
@@ -210,10 +204,11 @@ struct ContractPreviewView: View {
     }
 
     private func localizedPDFError(_ prefix: String, error: Error) -> String {
-        if localization.language == .simplifiedChinese {
-            return "\(prefix == "Email failed" ? "邮件发送失败" : "PDF 导出失败")：\(error.localizedDescription)"
-        }
-        return "\(prefix): \(error.localizedDescription)"
+        localization.language == .english ? "\(copy(prefix)): \(error.localizedDescription)" : copy(prefix)
+    }
+
+    private func copy(_ key: String) -> String {
+        AppLanguage.localizedString(key, language: localization.language)
     }
 
     private func isValidEmail(_ email: String) -> Bool {
@@ -258,7 +253,7 @@ final class ContractPreviewViewModel: ObservableObject {
             selectedContractID = selectedContractID ?? contracts.first?.id
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -272,7 +267,7 @@ final class ContractPreviewViewModel: ObservableObject {
             selectedContractID = contract.id
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -286,28 +281,18 @@ final class ContractPreviewViewModel: ObservableObject {
             selectedContractID = updated.id
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
     func pdfLines(for contract: Contract, language: AppLanguage) -> [String] {
-        if language == .simplifiedChinese {
-            return [
-                "合同编号：\(contract.contractNumber)",
-                "状态：\(contract.status.capitalized)",
-                "付款条款：\(contract.paymentTerms)",
-                "交付条款：\(contract.deliveryTerms)",
-                "免责声明：\(contract.disclaimer)",
-                "画图附件和报价快照已保存在后端合同记录中。"
-            ]
-        }
         return [
-            "Contract: \(contract.contractNumber)",
-            "Status: \(contract.status.capitalized)",
-            "Payment Terms: \(contract.paymentTerms)",
-            "Delivery Terms: \(contract.deliveryTerms)",
-            "Disclaimer: \(contract.disclaimer)",
-            "Drawing attachment and quote snapshot are stored in the backend contract record."
+            "\(AppLanguage.localizedString("Contract", language: language)): \(contract.contractNumber)",
+            "\(AppLanguage.localizedString("Status", language: language)): \(AppLanguage.localizedStatus(contract.status, language: language))",
+            "\(AppLanguage.localizedString("Payment Terms", language: language)): \(AppLanguage.localizedKnownSystemString(contract.paymentTerms, language: language))",
+            "\(AppLanguage.localizedString("Delivery Terms", language: language)): \(AppLanguage.localizedKnownSystemString(contract.deliveryTerms, language: language))",
+            "\(AppLanguage.localizedString("Disclaimer", language: language)): \(AppLanguage.localizedKnownSystemString(contract.disclaimer, language: language))",
+            AppLanguage.localizedString("Drawing attachment and quote snapshot are stored in the backend contract record.", language: language)
         ]
     }
 }

@@ -146,19 +146,21 @@ private struct CustomerFormView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle(title)
+            .navigationTitle(LocalizedStringKey(title))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "Saving" : "Save") {
+                    Button {
                         Task {
                             isSaving = true
                             await onSave(request)
                             isSaving = false
                             dismiss()
                         }
+                    } label: {
+                        Text(LocalizedStringKey(isSaving ? "Saving" : "Save"))
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                 }
@@ -204,7 +206,7 @@ final class CustomerListViewModel: ObservableObject {
             customers = try await service.listCustomers()
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -215,7 +217,7 @@ final class CustomerListViewModel: ObservableObject {
             customers.insert(customer, at: 0)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -228,7 +230,7 @@ final class CustomerListViewModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -241,7 +243,7 @@ final class CustomerListViewModel: ObservableObject {
                 customers.removeAll { $0.id == customer.id }
                 errorMessage = nil
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = AppLanguage.localizedErrorDescription(error)
             }
         }
     }

@@ -12,19 +12,31 @@ enum APIError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "The API URL is invalid. Please check the server address."
+            return AppLanguage.localizedString("The API URL is invalid. Please check the server address.")
         case .invalidResponse:
-            return "The server returned an invalid response. Please retry after checking the API status."
+            return AppLanguage.localizedString("The server returned an invalid response. Please retry after checking the API status.")
         case .unauthorized:
-            return "Your session has expired. Please sign in again."
+            return AppLanguage.localizedString("Your session has expired. Please sign in again.")
         case let .server(message, _):
-            return message
+            return AppLanguage.localizedServerMessage(message)
         case let .timeout(seconds, attempts, maxRetries):
-            return "Request timed out after \(Self.format(seconds))s. Attempts: \(attempts)/\(maxRetries + 1), retries: \(maxRetries)."
-        case let .network(message, attempts, maxRetries, timeoutSeconds):
-            return "Network request failed: \(message). Timeout: \(Self.format(timeoutSeconds))s, attempts: \(attempts)/\(maxRetries + 1), retries: \(maxRetries)."
-        case let .decodingFailed(message):
-            return "The server response could not be read. \(message)"
+            return AppLanguage.localizedFormat(
+                "Request timed out after %@s. Attempts: %@/%@, retries: %@.",
+                Self.format(seconds),
+                "\(attempts)",
+                "\(maxRetries + 1)",
+                "\(maxRetries)"
+            )
+        case let .network(_, attempts, maxRetries, timeoutSeconds):
+            return AppLanguage.localizedFormat(
+                "Network request failed. Timeout: %@s, attempts: %@/%@, retries: %@.",
+                Self.format(timeoutSeconds),
+                "\(attempts)",
+                "\(maxRetries + 1)",
+                "\(maxRetries)"
+            )
+        case .decodingFailed:
+            return AppLanguage.localizedString("The server response could not be read. Please retry.")
         }
     }
 

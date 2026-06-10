@@ -18,7 +18,10 @@ struct QuoteCalculator {
                 warnings.append(UnboundQuoteWarning(
                     sourceObjectID: object.id,
                     objectType: object.objectType,
-                    message: "Unbound product object: \(object.objectType)"
+                    message: AppLanguage.localizedFormat(
+                        "Unbound product object: %@",
+                        AppLanguage.localizedKnownSystemString(object.objectType)
+                    )
                 ))
                 continue
             }
@@ -30,7 +33,10 @@ struct QuoteCalculator {
                 warnings.append(UnboundQuoteWarning(
                     sourceObjectID: object.id,
                     objectType: object.objectType,
-                    message: "Missing active price for \(object.objectType)"
+                    message: AppLanguage.localizedFormat(
+                        "Missing active price for %@",
+                        AppLanguage.localizedKnownSystemString(object.objectType)
+                    )
                 ))
                 continue
             }

@@ -223,6 +223,10 @@ enum UnitType: String, CaseIterable, Codable, Identifiable {
     case lot = "lot"
 
     var id: String { rawValue }
+
+    var localizedTitle: String {
+        AppLanguage.localizedKnownSystemString(rawValue)
+    }
 }
 
 struct CostBreakdown: Codable, Hashable {
@@ -401,7 +405,7 @@ struct EstimateTemplate: Codable, Identifiable, Hashable {
         }
         return EstimateTemplate(
             projectID: projectID,
-            name: name ?? type.title,
+            name: name ?? type.localizedTitle,
             renovationType: type,
             categories: categories
         )

@@ -30,7 +30,7 @@ struct ProductCatalogView: View {
                             Button {
                                 toggleScope(scope.id)
                             } label: {
-                                Label(scope.title, systemImage: scope.icon)
+                                Label(LocalizedStringKey(scope.title), systemImage: scope.icon)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.bordered)
@@ -48,7 +48,7 @@ struct ProductCatalogView: View {
                                 selectedCategoryID = category.id
                             } label: {
                                 HStack {
-                                    Label(category.name, systemImage: category.kind == "service" ? "wrench.and.screwdriver" : "shippingbox")
+                                    Label(AppLanguage.localizedKnownSystemString(category.name), systemImage: category.kind == "service" ? "wrench.and.screwdriver" : "shippingbox")
                                     Spacer()
                                     if selectedCategoryID == category.id {
                                         Image(systemName: "checkmark.circle.fill")
@@ -283,12 +283,12 @@ private struct ProductRow: View {
                     .foregroundStyle(.secondary)
             }
             HStack(spacing: 12) {
-                Label(product.category, systemImage: product.isService ? "wrench.and.screwdriver" : "shippingbox")
-                Text(product.brand.isEmpty ? "No brand" : product.brand)
+                Label(AppLanguage.localizedKnownSystemString(product.category), systemImage: product.isService ? "wrench.and.screwdriver" : "shippingbox")
+                Text(product.brand.isEmpty ? AppLanguage.localizedString("No Brand") : product.brand)
                 if let material = product.material, !material.trimmed.isEmpty {
                     Text(material)
                 }
-                Text(product.unit)
+                Text(AppLanguage.localizedKnownSystemString(product.unit))
                 if let price = product.currentPrice {
                     Text(DecimalFormatter.currency(price))
                 }
@@ -363,7 +363,7 @@ private struct ProductFormView: View {
                 Section("Product") {
                     Picker("Category", selection: $categoryID) {
                         ForEach(categories) { category in
-                            Text("\(category.name) (\(category.kind))").tag(category.id)
+                            Text("\(AppLanguage.localizedKnownSystemString(category.name)) (\(AppLanguage.localizedKnownSystemString(category.kind)))").tag(category.id)
                         }
                     }
                     Picker("Brand", selection: $brandID) {
@@ -391,19 +391,21 @@ private struct ProductFormView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle(title)
+            .navigationTitle(LocalizedStringKey(title))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "Saving" : "Save") {
+                    Button {
                         Task {
                             isSaving = true
                             await onSave(request)
                             isSaving = false
                             dismiss()
                         }
+                    } label: {
+                        Text(LocalizedStringKey(isSaving ? "Saving" : "Save"))
                     }
                     .disabled(categories.isEmpty || name.trimmed.isEmpty || sku.trimmed.isEmpty || isSaving)
                 }
@@ -451,19 +453,21 @@ private struct BrandFormView: View {
             Form {
                 TextField("Name", text: $name)
             }
-            .navigationTitle(title)
+            .navigationTitle(LocalizedStringKey(title))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "Saving" : "Save") {
+                    Button {
                         Task {
                             isSaving = true
                             await onSave(BrandUpsertRequest(name: name.trimmed))
                             isSaving = false
                             dismiss()
                         }
+                    } label: {
+                        Text(LocalizedStringKey(isSaving ? "Saving" : "Save"))
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)
                 }
@@ -498,19 +502,21 @@ private struct CategoryFormView: View {
                     Text("Service").tag("service")
                 }
             }
-            .navigationTitle(title)
+            .navigationTitle(LocalizedStringKey(title))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "Saving" : "Save") {
+                    Button {
                         Task {
                             isSaving = true
                             await onSave(ProductCategoryUpsertRequest(parentID: nil, name: name.trimmed, kind: kind))
                             isSaving = false
                             dismiss()
                         }
+                    } label: {
+                        Text(LocalizedStringKey(isSaving ? "Saving" : "Save"))
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)
                 }
@@ -550,7 +556,7 @@ final class ProductCatalogViewModel: ObservableObject {
             products = try await loadedProducts
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -560,7 +566,7 @@ final class ProductCatalogViewModel: ObservableObject {
             products = try await service.listProducts(query: searchText)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -654,7 +660,7 @@ final class ProductCatalogViewModel: ObservableObject {
             try await operation()
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 

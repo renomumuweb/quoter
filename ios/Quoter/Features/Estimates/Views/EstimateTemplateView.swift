@@ -9,7 +9,7 @@ private func estimateDisplayName(_ value: String) -> String {
     if value == "Other" {
         return AppLanguage.localizedString("Other Category")
     }
-    return AppLanguage.localizedString(value)
+    return AppLanguage.localizedKnownSystemString(value)
 }
 
 struct EstimateTemplateView: View {
@@ -632,7 +632,7 @@ private struct EstimateItemEditorView: View {
                     DecimalEntryField(title: "Quantity", value: $item.quantity, keyboardType: .decimalPad, onCommit: {})
                     Picker("Unit", selection: $item.unit) {
                         ForEach(UnitType.allCases) { unit in
-                            Text(unit.rawValue).tag(unit.rawValue)
+                            Text(unit.localizedTitle).tag(unit.rawValue)
                         }
                     }
                     TextField(estimateLocalized("Custom Unit"), text: $item.unit)
@@ -702,7 +702,7 @@ private extension EstimateItem {
             parts.append(brandSnapshot)
         }
         if let productCategorySnapshot, !productCategorySnapshot.trimmedForEstimate.isEmpty {
-            parts.append(productCategorySnapshot)
+            parts.append(AppLanguage.localizedKnownSystemString(productCategorySnapshot))
         }
         if let materialSnapshot, !materialSnapshot.trimmedForEstimate.isEmpty {
             parts.append(materialSnapshot)
@@ -865,7 +865,7 @@ final class EstimateTemplateViewModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
 
         do {
@@ -879,7 +879,7 @@ final class EstimateTemplateViewModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -904,7 +904,7 @@ final class EstimateTemplateViewModel: ObservableObject {
             try store.deleteProjectEstimate(projectID: projectID)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -921,7 +921,7 @@ final class EstimateTemplateViewModel: ObservableObject {
             try store.saveProjectEstimate(estimate, projectID: projectID)
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -943,7 +943,7 @@ final class EstimateTemplateViewModel: ObservableObject {
             showStatus("Template saved")
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 
@@ -956,7 +956,7 @@ final class EstimateTemplateViewModel: ObservableObject {
             showStatus("Template deleted")
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 

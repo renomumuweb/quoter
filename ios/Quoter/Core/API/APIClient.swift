@@ -178,7 +178,7 @@ final class APIClient {
         guard (200..<300).contains(http.statusCode) else {
             let message = (try? decoder.decode(APIErrorPayload.self, from: data).error) ?? "Request failed"
             throw APIError.server(
-                message: "\(message) Status: \(http.statusCode). Method: \(method.rawValue), path: \(path), attempts: \(attempt)/\(maxRetries + 1), retries: \(maxRetries), timeout: \(formattedTimeout)s.",
+                message: message,
                 statusCode: http.statusCode
             )
         }
@@ -192,10 +192,6 @@ final class APIClient {
         } catch {
             throw APIError.decodingFailed("Method: \(method.rawValue), path: \(path). \(error.localizedDescription)")
         }
-    }
-
-    private var formattedTimeout: String {
-        String(format: "%.0f", requestConfiguration.timeoutInterval)
     }
 
     private func retryLimit(for method: HTTPMethod) -> Int {

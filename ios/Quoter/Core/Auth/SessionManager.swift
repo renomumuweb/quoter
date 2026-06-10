@@ -36,13 +36,13 @@ final class SessionManager: ObservableObject {
                 try await refreshSession()
                 try await loadMe()
             } catch {
-                errorMessage = "Saved session found, but the server could not be reached."
+                errorMessage = AppLanguage.localizedString("Saved session found, but the server could not be reached.")
             }
         } catch {
             if isAuthenticationFailure(error) {
                 clearLocalSession()
             } else {
-                errorMessage = error.localizedDescription
+                errorMessage = AppLanguage.localizedErrorDescription(error)
             }
         }
     }
@@ -73,7 +73,7 @@ final class SessionManager: ObservableObject {
             try save(response: response)
             try? await loadMe()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
 

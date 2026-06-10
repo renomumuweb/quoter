@@ -50,7 +50,8 @@ struct ProductObjectOverlayView: View {
         if let productName {
             return productName
         }
-        return object.productID == nil ? "\(object.objectType.capitalized)\nUnbound" : object.objectType.capitalized
+        let objectType = AppLanguage.localizedKnownSystemString(object.objectType)
+        return object.productID == nil ? "\(objectType)\n\(AppLanguage.localizedString("Unbound"))" : objectType
     }
 
     private func moveGesture(canvasSize: CGSize) -> some Gesture {

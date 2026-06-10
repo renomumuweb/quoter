@@ -46,7 +46,11 @@ struct ProductMatcher {
             if category.contains(objectType) || objectType.contains(category) {
                 score += weight("0.35")
                 matchedCategory = product.category
-                reasons.append("Object type \(object.objectType) matches category \(product.category).")
+                reasons.append(AppLanguage.localizedFormat(
+                    "Object type %@ matches category %@.",
+                    AppLanguage.localizedKnownSystemString(object.objectType),
+                    AppLanguage.localizedKnownSystemString(product.category)
+                ))
             }
 
             let haystack = [product.name, product.sku, product.brand, product.category, product.size, product.color]
@@ -60,36 +64,36 @@ struct ProductMatcher {
                 }
             }
             if !keywords.isEmpty {
-                reasons.append("Annotation keywords match product fields.")
+                reasons.append(AppLanguage.localizedString("Annotation keywords match product fields."))
             }
 
             if let productSize = product.size?.lowercased(),
                let size = sizes.first(where: { productSize.contains($0) }) {
                 score += weight("0.20")
                 matchedSize = size
-                reasons.append("Size \(size) matches.")
+                reasons.append(AppLanguage.localizedFormat("Size %@ matches.", size))
             }
 
             if let productColor = product.color?.lowercased(),
                let color = colors.first(where: { productColor.contains($0) || $0.contains(productColor) }) {
                 score += weight("0.15")
                 matchedColor = color
-                reasons.append("Color \(color) matches.")
+                reasons.append(AppLanguage.localizedFormat("Color %@ matches.", AppLanguage.localizedKnownSystemString(color)))
             }
 
             if projectContext.roomType.lowercased().contains("bath"),
                ["vanity", "toilet", "shower", "tile"].contains(category) {
                 score += weight("0.08")
-                reasons.append("Bathroom room type boosts common bath category.")
+                reasons.append(AppLanguage.localizedString("Bathroom room type boosts common bath category."))
             }
 
             if recentIDs.contains(product.id) {
                 score += weight("0.08")
-                reasons.append("Product was used recently.")
+                reasons.append(AppLanguage.localizedString("Product was used recently."))
             }
             if pricedIDs.contains(product.id) {
                 score += weight("0.08")
-                reasons.append("Product has an effective price.")
+                reasons.append(AppLanguage.localizedString("Product has an effective price."))
             }
 
             guard score > 0 else { return nil }

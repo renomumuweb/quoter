@@ -10,7 +10,7 @@ struct ProjectWorkspaceView: View {
                     Text(project.title)
                         .font(.title3.weight(.semibold))
                     HStack(spacing: 12) {
-                        Label(project.customerName ?? "Customer", systemImage: "person")
+                        Label(project.customerName ?? AppLanguage.localizedString("Customer"), systemImage: "person")
                         Label(Project.serviceScopeTitle(project.roomType), systemImage: "square.grid.2x2")
                     }
                     .font(.caption)

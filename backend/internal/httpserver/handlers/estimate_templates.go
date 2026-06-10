@@ -48,6 +48,14 @@ type estimateTemplateItemJSON struct {
 	UnitPriceSnapshot       *float64                      `json:"unit_price_snapshot,omitempty"`
 	ItemName                string                        `json:"item_name"`
 	CategoryID              uuid.UUID                     `json:"category_id"`
+	RoomName                string                        `json:"room_name"`
+	RoomType                string                        `json:"room_type"`
+	FloorLevel              string                        `json:"floor_level"`
+	ScopeCode               string                        `json:"scope_code"`
+	MaterialChoice          string                        `json:"material_choice"`
+	SuppliedBy              string                        `json:"supplied_by"`
+	RiskFlags               []string                      `json:"risk_flags"`
+	PricingStatus           string                        `json:"pricing_status"`
 	Description             string                        `json:"description"`
 	Quantity                float64                       `json:"quantity"`
 	Unit                    string                        `json:"unit"`
@@ -312,9 +320,19 @@ func (h BusinessHandler) enrichEstimateTemplateCategories(c *gin.Context, compan
 			item := &categories[categoryIndex].Items[itemIndex]
 			item.ItemName = strings.TrimSpace(item.ItemName)
 			item.Description = strings.TrimSpace(item.Description)
+			item.RoomName = strings.TrimSpace(item.RoomName)
+			item.RoomType = strings.TrimSpace(item.RoomType)
+			item.FloorLevel = strings.TrimSpace(item.FloorLevel)
+			item.ScopeCode = strings.TrimSpace(item.ScopeCode)
+			item.MaterialChoice = strings.TrimSpace(item.MaterialChoice)
+			item.SuppliedBy = strings.TrimSpace(item.SuppliedBy)
+			item.PricingStatus = strings.TrimSpace(item.PricingStatus)
+			if item.PricingStatus == "" {
+				item.PricingStatus = "pending"
+			}
 			item.Unit = strings.TrimSpace(item.Unit)
 			item.Notes = strings.TrimSpace(item.Notes)
-			if item.Quantity == 0 {
+			if item.Quantity <= 0 {
 				item.Quantity = 1
 			}
 			if item.ProductID == nil {
@@ -347,7 +365,7 @@ func enrichEstimateTemplateItemFromProduct(item *estimateTemplateItemJSON, produ
 	item.BrandSnapshot = optionalString(product.Brand)
 	item.ProductCategorySnapshot = stringValue(product.Category)
 	item.MaterialSnapshot = product.Material
-	item.UnitPriceSnapshot = product.CurrentPrice
+	item.UnitPriceSnapshot = nil
 
 	if item.ItemName == "" {
 		item.ItemName = product.Name
@@ -357,9 +375,6 @@ func enrichEstimateTemplateItemFromProduct(item *estimateTemplateItemJSON, produ
 	}
 	if item.Unit == "" {
 		item.Unit = product.Unit
-	}
-	if item.Costs.MaterialCost == 0 && product.CurrentPrice != nil {
-		item.Costs.MaterialCost = *product.CurrentPrice
 	}
 }
 

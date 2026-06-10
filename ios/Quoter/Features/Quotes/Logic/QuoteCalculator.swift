@@ -17,6 +17,7 @@ struct QuoteCalculator {
             guard let productID = object.productID ?? object.serviceID else {
                 warnings.append(UnboundQuoteWarning(
                     sourceObjectID: object.id,
+                    sourceEstimateItemID: nil,
                     objectType: object.objectType,
                     message: AppLanguage.localizedFormat(
                         "Unbound product object: %@",
@@ -32,6 +33,7 @@ struct QuoteCalculator {
                     .first else {
                 warnings.append(UnboundQuoteWarning(
                     sourceObjectID: object.id,
+                    sourceEstimateItemID: nil,
                     objectType: object.objectType,
                     message: AppLanguage.localizedFormat(
                         "Missing active price for %@",
@@ -50,6 +52,7 @@ struct QuoteCalculator {
             items.append(QuoteItemPreview(
                 productID: productID,
                 sourceObjectID: object.id,
+                sourceKind: "drawing_object",
                 productNameSnapshot: product.name,
                 skuSnapshot: product.sku,
                 brandSnapshot: product.brand,
@@ -61,7 +64,8 @@ struct QuoteCalculator {
                 installationFee: object.installationFee,
                 lineTotal: lineTotal,
                 notesSnapshot: [object.notes, notes].filter { !$0.isEmpty }.joined(separator: "\n"),
-                isContractVisible: object.isContractVisible
+                isContractVisible: object.isContractVisible,
+                pricingStatus: "priced"
             ))
         }
 

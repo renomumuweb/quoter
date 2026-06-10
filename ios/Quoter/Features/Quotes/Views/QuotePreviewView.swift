@@ -2,14 +2,24 @@ import Foundation
 import MessageUI
 import SwiftUI
 
+private func quoteScopeDisplayName(_ value: String) -> String {
+    AppLanguage.localizedKnownSystemString(value)
+}
+
 struct QuotePreviewView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var localization: AppLocalization
-    @StateObject private var viewModel = QuotePreviewViewModel()
+    let project: Project?
+    @StateObject private var viewModel: QuotePreviewViewModel
     @State private var pdfURL: URL?
     @State private var showingShareSheet = false
     @State private var showingMailComposer = false
     @State private var pdfRecipient = ""
+
+    init(project: Project? = nil) {
+        self.project = project
+        _viewModel = StateObject(wrappedValue: QuotePreviewViewModel(initialProjectID: project?.id))
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,12 +31,17 @@ struct QuotePreviewView: View {
                         Text("Create a project and add quote-enabled drawing objects first.")
                     }
                 } else {
-                    Picker("Project", selection: $viewModel.selectedProjectID) {
-                        ForEach(viewModel.projects) { project in
-                            Text(project.title).tag(project.id as UUID?)
+                    if project == nil {
+                        Picker("Project", selection: $viewModel.selectedProjectID) {
+                            ForEach(viewModel.projects) { project in
+                                Text(project.title).tag(project.id as UUID?)
+                            }
                         }
+                        .pickerStyle(.menu)
+                    } else if let project {
+                        Label(project.title, systemImage: "folder")
+                            .font(.headline)
                     }
-                    .pickerStyle(.menu)
 
                     HStack {
                         Button("Preview Quote") {
@@ -41,7 +56,7 @@ struct QuotePreviewView: View {
                             Task { await viewModel.createQuote() }
                         }
                         .buttonStyle(.bordered)
-                        .disabled(viewModel.preview == nil)
+                        .disabled(viewModel.preview?.items.isEmpty ?? true)
 
                         if let quote = viewModel.createdQuote, quote.status != "confirmed" {
                             Button("Confirm") {
@@ -65,7 +80,7 @@ struct QuotePreviewView: View {
                         ContentUnavailableView {
                             Label("No Preview", systemImage: "list.bullet.rectangle")
                         } description: {
-                            Text("Select a project to calculate quote items from structured drawing objects.")
+                            Text("Select a project to calculate pending quote scope items.")
                         }
                     }
                 }
@@ -164,7 +179,7 @@ struct QuotePreviewView: View {
     }
 
     private func generatePDF(for preview: QuotePreview) {
-        let title = viewModel.createdQuote?.quoteNumber ?? copy("Quote Preview")
+        let title = viewModel.createdQuote?.quoteNumber ?? copy("Scope / Estimate Request")
         do {
             pdfURL = try PDFGenerator().makeQuotePDF(
                 title: title,
@@ -247,7 +262,7 @@ private struct QuotePreviewContent: View {
 
             Section("Items") {
                 if preview.items.isEmpty {
-                    Text("No quote items yet.")
+                    Text("No selected quote scope items yet.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(preview.items) { item in
@@ -256,16 +271,28 @@ private struct QuotePreviewContent: View {
                                 Text(item.productNameSnapshot)
                                     .font(.headline)
                                 Spacer()
-                                Text(DecimalFormatter.currency(item.lineTotal))
-                                    .font(.headline)
+                                Text(item.pricingStatus == "priced" ? DecimalFormatter.currency(item.lineTotal) : "Pending")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(item.pricingStatus == "priced" ? .primary : .orange)
                             }
-                            HStack(spacing: 12) {
-                                Text(item.skuSnapshot)
-                                Text("\(AppLanguage.localizedString("Qty", language: localization.language)) \(NSDecimalNumber(decimal: item.quantity).stringValue)")
-                                Text(DecimalFormatter.currency(item.unitPriceSnapshot))
+                            FlowSummaryRow(item: item)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let room = item.roomSnapshot, !room.isEmpty {
+                                Label(room, systemImage: "square.split.bottomrightquarter")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            if let material = item.materialSnapshot, !material.isEmpty {
+                                Label(material, systemImage: "swatchpalette")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if let suppliedBy = item.suppliedBySnapshot, !suppliedBy.isEmpty {
+                                Label("Supplied by \(suppliedBy)", systemImage: "shippingbox")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             if !item.notesSnapshot.isEmpty {
                                 Text(item.notesSnapshot)
                                     .font(.caption)
@@ -276,15 +303,39 @@ private struct QuotePreviewContent: View {
                 }
             }
 
-            Section("Totals") {
-                LabeledContent("Subtotal", value: DecimalFormatter.currency(preview.subtotal))
-                LabeledContent("Discount", value: DecimalFormatter.currency(preview.discountTotal))
-                LabeledContent("Tax", value: DecimalFormatter.currency(preview.taxTotal))
-                LabeledContent("Total", value: DecimalFormatter.currency(preview.total))
-                    .font(.headline)
+            if preview.hasPricedItems {
+                Section("Totals") {
+                    LabeledContent("Subtotal", value: DecimalFormatter.currency(preview.subtotal))
+                    LabeledContent("Discount", value: DecimalFormatter.currency(preview.discountTotal))
+                    LabeledContent("Tax", value: DecimalFormatter.currency(preview.taxTotal))
+                    LabeledContent("Total", value: DecimalFormatter.currency(preview.total))
+                        .font(.headline)
+                }
+            } else {
+                Section("Pricing") {
+                    Label("Pricing pending", systemImage: "clock.badge.exclamationmark")
+                        .foregroundStyle(.orange)
+                }
             }
         }
         .listStyle(.insetGrouped)
+    }
+}
+
+private struct FlowSummaryRow: View {
+    let item: QuoteItemPreview
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let scope = item.scopeSnapshot, !scope.isEmpty {
+                Text(quoteScopeDisplayName(scope))
+            }
+            Text("\(AppLanguage.localizedString("Qty")) \(NSDecimalNumber(decimal: item.quantity).stringValue)")
+            Text(AppLanguage.localizedKnownSystemString(item.unitSnapshot))
+            if !item.skuSnapshot.isEmpty {
+                Text(item.skuSnapshot)
+            }
+        }
     }
 }
 
@@ -310,8 +361,14 @@ final class QuotePreviewViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
+    private let initialProjectID: UUID?
     private var projectService: ProjectService?
     private var quoteService: QuoteService?
+
+    init(initialProjectID: UUID? = nil) {
+        self.initialProjectID = initialProjectID
+        self.selectedProjectID = initialProjectID
+    }
 
     func configure(apiClient: APIClient) {
         if projectService == nil {
@@ -327,7 +384,7 @@ final class QuotePreviewViewModel: ObservableObject {
         do {
             projects = try await projectService.listProjects()
             if selectedProjectID == nil {
-                selectedProjectID = projects.first?.id
+                selectedProjectID = initialProjectID ?? projects.first?.id
             }
             errorMessage = nil
             await previewSelectedProject()
@@ -387,7 +444,7 @@ final class QuotePreviewViewModel: ObservableObject {
         var lines = [
             "\(AppLanguage.localizedString("Project ID", language: language)): \(uuidText(preview.projectID, language: language))",
             "\(AppLanguage.localizedString("Customer ID", language: language)): \(uuidText(preview.customerID, language: language))",
-            "\(AppLanguage.localizedString("Currency", language: language)): \(text(preview.currency, language: language))"
+            "\(AppLanguage.localizedString("Pricing", language: language)): \(preview.hasPricedItems ? text(preview.currency, language: language) : AppLanguage.localizedString("Pricing pending", language: language))"
         ]
         if !preview.warnings.isEmpty {
             lines.append("\(AppLanguage.localizedString("Warnings", language: language)):")
@@ -395,13 +452,32 @@ final class QuotePreviewViewModel: ObservableObject {
         }
         lines.append("\(AppLanguage.localizedString("Items", language: language)):")
         lines.append(contentsOf: preview.items.map { item in
-            "- \(item.productNameSnapshot) / SKU \(item.skuSnapshot) / \(AppLanguage.localizedString("Qty", language: language)) \(NSDecimalNumber(decimal: item.quantity).stringValue) / \(AppLanguage.localizedString("Unit", language: language)) \(DecimalFormatter.currency(item.unitPriceSnapshot)) / \(AppLanguage.localizedString("Total", language: language)) \(DecimalFormatter.currency(item.lineTotal))"
+            let details = nonEmptyPDFParts([
+                item.roomSnapshot.map { "\(AppLanguage.localizedString("Room", language: language)): \($0)" },
+                item.scopeSnapshot.map { "\(AppLanguage.localizedString("Scope", language: language)): \($0)" },
+                item.materialSnapshot.map { "\(AppLanguage.localizedString("Material", language: language)): \($0)" },
+                "\(AppLanguage.localizedString("Qty", language: language)) \(NSDecimalNumber(decimal: item.quantity).stringValue) \(item.unitSnapshot)",
+                item.suppliedBySnapshot.map { "\(AppLanguage.localizedString("Supplied By", language: language)): \($0)" },
+                item.pricingStatus == "priced" ? DecimalFormatter.currency(item.lineTotal) : AppLanguage.localizedString("Pricing pending", language: language)
+            ])
+            return "- \(item.productNameSnapshot) / \(details.joined(separator: " / "))"
         })
-        lines.append("\(AppLanguage.localizedString("Subtotal", language: language)): \(DecimalFormatter.currency(preview.subtotal))")
-        lines.append("\(AppLanguage.localizedString("Discount", language: language)): \(DecimalFormatter.currency(preview.discountTotal))")
-        lines.append("\(AppLanguage.localizedString("Tax", language: language)): \(DecimalFormatter.currency(preview.taxTotal))")
-        lines.append("\(AppLanguage.localizedString("Total", language: language)): \(DecimalFormatter.currency(preview.total))")
+        if preview.hasPricedItems {
+            lines.append("\(AppLanguage.localizedString("Subtotal", language: language)): \(DecimalFormatter.currency(preview.subtotal))")
+            lines.append("\(AppLanguage.localizedString("Discount", language: language)): \(DecimalFormatter.currency(preview.discountTotal))")
+            lines.append("\(AppLanguage.localizedString("Tax", language: language)): \(DecimalFormatter.currency(preview.taxTotal))")
+            lines.append("\(AppLanguage.localizedString("Total", language: language)): \(DecimalFormatter.currency(preview.total))")
+        } else {
+            lines.append(AppLanguage.localizedString("Pricing pending", language: language))
+        }
         return lines
+    }
+
+    private func nonEmptyPDFParts(_ values: [String?]) -> [String] {
+        values.compactMap { value in
+            guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+            return value
+        }
     }
 
     private func uuidText(_ id: UUID?, language: AppLanguage) -> String {

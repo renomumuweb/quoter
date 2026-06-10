@@ -21,6 +21,16 @@ struct ProjectWorkspaceView: View {
 
             Section("Project Tools") {
                 NavigationLink {
+                    QuoteScopeBuilderView(project: project)
+                } label: {
+                    ProjectToolRow(
+                        title: "Quote Scope Builder",
+                        subtitle: "Rooms, materials, quantities, notes, and pending pricing scope",
+                        systemImage: "checklist"
+                    )
+                }
+
+                NavigationLink {
                     DrawingWorkspaceView(project: project)
                 } label: {
                     ProjectToolRow(
@@ -31,12 +41,22 @@ struct ProjectWorkspaceView: View {
                 }
 
                 NavigationLink {
-                    EstimateTemplateView(project: project)
+                    QuotePreviewView(project: project)
                 } label: {
                     ProjectToolRow(
-                        title: "Estimate Template",
-                        subtitle: "Broad contractor categories with custom quote items",
-                        systemImage: "list.bullet.clipboard"
+                        title: "Quote Preview",
+                        subtitle: "Create a pending-price quote from selected scope items",
+                        systemImage: "list.bullet.rectangle"
+                    )
+                }
+
+                NavigationLink {
+                    ContractPreviewView()
+                } label: {
+                    ProjectToolRow(
+                        title: "Contract",
+                        subtitle: "Generate contract records after a quote exists",
+                        systemImage: "doc.richtext"
                     )
                 }
             }

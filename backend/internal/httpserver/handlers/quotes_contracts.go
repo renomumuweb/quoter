@@ -12,28 +12,36 @@ import (
 )
 
 type quoteWarningPayload struct {
-	SourceObjectID uuid.UUID `json:"source_object_id"`
-	ObjectType     string    `json:"object_type"`
-	Message        string    `json:"message"`
+	SourceObjectID       *uuid.UUID `json:"source_object_id,omitempty"`
+	SourceEstimateItemID *uuid.UUID `json:"source_estimate_item_id,omitempty"`
+	ObjectType           string     `json:"object_type"`
+	Message              string     `json:"message"`
 }
 
 type quoteItemPayload struct {
-	ID                  *uuid.UUID `json:"id,omitempty"`
-	ProductID           uuid.UUID  `json:"product_id"`
-	SourceObjectID      uuid.UUID  `json:"source_object_id"`
-	ProductNameSnapshot string     `json:"product_name_snapshot"`
-	SKUSnapshot         string     `json:"sku_snapshot"`
-	BrandSnapshot       string     `json:"brand_snapshot"`
-	CategorySnapshot    string     `json:"category_snapshot"`
-	UnitSnapshot        string     `json:"unit_snapshot"`
-	UnitPriceSnapshot   float64    `json:"unit_price_snapshot"`
-	Quantity            float64    `json:"quantity"`
-	DiscountAmount      float64    `json:"discount_amount"`
-	InstallationFee     float64    `json:"installation_fee"`
-	LineTotal           float64    `json:"line_total"`
-	NotesSnapshot       string     `json:"notes_snapshot"`
-	IsContractVisible   bool       `json:"is_contract_visible"`
-	SortOrder           int        `json:"sort_order"`
+	ID                   *uuid.UUID `json:"id,omitempty"`
+	ProductID            *uuid.UUID `json:"product_id,omitempty"`
+	SourceObjectID       *uuid.UUID `json:"source_object_id,omitempty"`
+	SourceKind           string     `json:"source_kind"`
+	SourceEstimateItemID *uuid.UUID `json:"source_estimate_item_id,omitempty"`
+	ProductNameSnapshot  string     `json:"product_name_snapshot"`
+	SKUSnapshot          string     `json:"sku_snapshot"`
+	BrandSnapshot        string     `json:"brand_snapshot"`
+	CategorySnapshot     string     `json:"category_snapshot"`
+	UnitSnapshot         string     `json:"unit_snapshot"`
+	UnitPriceSnapshot    float64    `json:"unit_price_snapshot"`
+	Quantity             float64    `json:"quantity"`
+	DiscountAmount       float64    `json:"discount_amount"`
+	InstallationFee      float64    `json:"installation_fee"`
+	LineTotal            float64    `json:"line_total"`
+	NotesSnapshot        string     `json:"notes_snapshot"`
+	IsContractVisible    bool       `json:"is_contract_visible"`
+	RoomSnapshot         string     `json:"room_snapshot"`
+	ScopeSnapshot        string     `json:"scope_snapshot"`
+	MaterialSnapshot     string     `json:"material_snapshot"`
+	SuppliedBySnapshot   string     `json:"supplied_by_snapshot"`
+	PricingStatus        string     `json:"pricing_status"`
+	SortOrder            int        `json:"sort_order"`
 }
 
 type quotePreviewPayload struct {
@@ -140,16 +148,19 @@ func (h BusinessHandler) CreateQuote(c *gin.Context) {
 	for index, item := range preview.Items {
 		if _, err := tx.Exec(c.Request.Context(), `
 			INSERT INTO quote_items (
-				company_id, quote_id, product_id, source_object_id,
+				company_id, quote_id, product_id, source_object_id, source_kind, source_estimate_item_id,
 				product_name_snapshot, sku_snapshot, brand_snapshot, category_snapshot, unit_snapshot,
 				unit_price_snapshot, quantity, discount_amount, installation_fee, line_total,
-				notes_snapshot, is_contract_visible, sort_order
+				notes_snapshot, is_contract_visible, room_snapshot, scope_snapshot, material_snapshot,
+				supplied_by_snapshot, pricing_status, sort_order
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		`, a.CompanyID, quoteID, item.ProductID, item.SourceObjectID, item.ProductNameSnapshot,
-			item.SKUSnapshot, item.BrandSnapshot, item.CategorySnapshot, item.UnitSnapshot,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+			        $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+		`, a.CompanyID, quoteID, item.ProductID, item.SourceObjectID, item.SourceKind, item.SourceEstimateItemID,
+			item.ProductNameSnapshot, item.SKUSnapshot, item.BrandSnapshot, item.CategorySnapshot, item.UnitSnapshot,
 			item.UnitPriceSnapshot, item.Quantity, item.DiscountAmount, item.InstallationFee, item.LineTotal,
-			item.NotesSnapshot, item.IsContractVisible, index); err != nil {
+			item.NotesSnapshot, item.IsContractVisible, item.RoomSnapshot, item.ScopeSnapshot, item.MaterialSnapshot,
+			item.SuppliedBySnapshot, item.PricingStatus, index); err != nil {
 			writeDBError(c, err, "quote item not found")
 			return
 		}
@@ -293,95 +304,104 @@ func (h BusinessHandler) buildQuotePreview(c *gin.Context, companyID uuid.UUID, 
 	}
 	preview.DrawingID = optionalUUID(drawingIDText)
 	preview.Currency = "USD"
-	notes, err := h.annotationNotesByObject(c, companyID, projectID)
+
+	estimate, found, err := h.getProjectEstimateForQuote(c, companyID, projectID)
 	if err != nil {
 		return quotePreviewPayload{}, err
 	}
-
-	rows, err := h.db.Query(c.Request.Context(), `
-		SELECT o.id, o.object_type,
-		       COALESCE(COALESCE(o.product_id, o.service_id)::text, ''),
-		       o.quantity::float8, o.discount_amount::float8, o.installation_fee::float8, COALESCE(o.notes, ''),
-		       o.is_contract_visible,
-		       COALESCE(p.name, ''), COALESCE(p.sku, ''), COALESCE(b.name, ''), COALESCE(pc.name, ''), COALESCE(p.unit, o.unit),
-		       COALESCE(price.unit_price::text, '')
-		FROM drawing_objects o
-		LEFT JOIN products p ON p.id=COALESCE(o.product_id, o.service_id) AND p.company_id=o.company_id AND p.deleted_at IS NULL
-		LEFT JOIN brands b ON b.id=p.brand_id AND b.company_id=p.company_id AND b.deleted_at IS NULL
-		LEFT JOIN product_categories pc ON pc.id=p.category_id AND pc.company_id=p.company_id AND pc.deleted_at IS NULL
-		LEFT JOIN LATERAL (
-			SELECT unit_price
-			FROM product_prices
-			WHERE company_id=o.company_id AND product_id=p.id
-			  AND effective_from <= CURRENT_DATE
-			  AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-			ORDER BY effective_from DESC
-			LIMIT 1
-		) price ON true
-		WHERE o.company_id=$1 AND o.project_id=$2 AND o.deleted_at IS NULL AND o.status <> 'deleted' AND o.is_quote_enabled=true
-		ORDER BY o.created_at ASC
-	`, companyID, projectID)
-	if err != nil {
-		return quotePreviewPayload{}, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var row objectQuoteRow
-		if err := rows.Scan(
-			&row.ObjectID, &row.ObjectType, uuidTextScanner(&row.ProductID), &row.Quantity, &row.DiscountAmount,
-			&row.InstallationFee, &row.ObjectNotes, &row.IsContractVisible, &row.ProductName, &row.SKU,
-			&row.Brand, &row.Category, &row.Unit, &row.PriceText,
-		); err != nil {
-			return quotePreviewPayload{}, err
-		}
-		if row.ProductID == nil {
-			preview.Warnings = append(preview.Warnings, quoteWarningPayload{
-				SourceObjectID: row.ObjectID,
-				ObjectType:     row.ObjectType,
-				Message:        "Unbound product object: " + row.ObjectType,
-			})
-			continue
-		}
-		unitPrice, ok := parseNumericString(row.PriceText)
-		if !ok {
-			preview.Warnings = append(preview.Warnings, quoteWarningPayload{
-				SourceObjectID: row.ObjectID,
-				ObjectType:     row.ObjectType,
-				Message:        "Missing active price for " + row.ObjectType,
-			})
-			continue
-		}
-		lineNotes := strings.Join(nonEmptyStrings(row.ObjectNotes, notes[row.ObjectID]), "\n")
-		lineTotal := roundMoney(unitPrice*row.Quantity - row.DiscountAmount + row.InstallationFee)
-		preview.Items = append(preview.Items, quoteItemPayload{
-			ProductID:           *row.ProductID,
-			SourceObjectID:      row.ObjectID,
-			ProductNameSnapshot: row.ProductName,
-			SKUSnapshot:         row.SKU,
-			BrandSnapshot:       row.Brand,
-			CategorySnapshot:    row.Category,
-			UnitSnapshot:        row.Unit,
-			UnitPriceSnapshot:   roundMoney(unitPrice),
-			Quantity:            row.Quantity,
-			DiscountAmount:      roundMoney(row.DiscountAmount),
-			InstallationFee:     roundMoney(row.InstallationFee),
-			LineTotal:           lineTotal,
-			NotesSnapshot:       lineNotes,
-			IsContractVisible:   row.IsContractVisible,
-			SortOrder:           len(preview.Items),
+	if !found {
+		preview.Warnings = append(preview.Warnings, quoteWarningPayload{
+			ObjectType: "quote_scope",
+			Message:    "No quote scope builder items found.",
 		})
-		preview.Subtotal += lineTotal
-		preview.DiscountTotal += row.DiscountAmount
+		return preview, nil
 	}
-	if err := rows.Err(); err != nil {
+	if err := h.appendProjectEstimateItemsToPreview(estimate, &preview); err != nil {
 		return quotePreviewPayload{}, err
 	}
-	preview.Subtotal = roundMoney(preview.Subtotal)
-	preview.DiscountTotal = roundMoney(preview.DiscountTotal)
-	preview.TaxTotal = roundMoney(preview.Subtotal * preview.TaxRate)
-	preview.Total = roundMoney(preview.Subtotal + preview.TaxTotal)
+	if len(preview.Items) == 0 {
+		preview.Warnings = append(preview.Warnings, quoteWarningPayload{
+			ObjectType: "quote_scope",
+			Message:    "No selected quote scope items found.",
+		})
+	}
 	return preview, nil
+}
+
+func (h BusinessHandler) appendProjectEstimateItemsToPreview(estimate projectEstimatePayload, preview *quotePreviewPayload) error {
+	var categories []estimateTemplateCategoryJSON
+	if err := json.Unmarshal(estimate.Categories, &categories); err != nil {
+		return err
+	}
+	for _, category := range categories {
+		categoryName := strings.TrimSpace(category.Name)
+		for _, item := range category.Items {
+			if !item.Selected {
+				continue
+			}
+			itemName := strings.TrimSpace(item.ItemName)
+			if itemName == "" && item.ProductNameSnapshot != nil {
+				itemName = strings.TrimSpace(*item.ProductNameSnapshot)
+			}
+			if itemName == "" {
+				itemName = "Unnamed scope item"
+			}
+			unit := strings.TrimSpace(item.Unit)
+			if unit == "" {
+				unit = "each"
+			}
+			quantity := item.Quantity
+			if quantity <= 0 {
+				quantity = 1
+			}
+			pricingStatus := strings.TrimSpace(item.PricingStatus)
+			if pricingStatus == "" {
+				pricingStatus = "pending"
+			}
+			material := strings.TrimSpace(item.MaterialChoice)
+			if material == "" && item.MaterialSnapshot != nil {
+				material = strings.TrimSpace(*item.MaterialSnapshot)
+			}
+			notes := strings.Join(nonEmptyStrings(item.Description, item.Notes), "\n")
+			sourceID := item.ID
+			preview.Items = append(preview.Items, quoteItemPayload{
+				ProductID:            item.ProductID,
+				SourceKind:           "estimate_item",
+				SourceEstimateItemID: &sourceID,
+				ProductNameSnapshot:  itemName,
+				SKUSnapshot:          optionalStringValue(item.SKUSnapshot),
+				BrandSnapshot:        optionalStringValue(item.BrandSnapshot),
+				CategorySnapshot:     optionalStringValue(item.ProductCategorySnapshot),
+				UnitSnapshot:         unit,
+				UnitPriceSnapshot:    0,
+				Quantity:             quantity,
+				DiscountAmount:       0,
+				InstallationFee:      0,
+				LineTotal:            0,
+				NotesSnapshot:        notes,
+				IsContractVisible:    true,
+				RoomSnapshot:         firstNonEmpty(item.RoomName, item.RoomType, item.FloorLevel),
+				ScopeSnapshot:        firstNonEmpty(categoryName, item.ScopeCode),
+				MaterialSnapshot:     material,
+				SuppliedBySnapshot:   firstNonEmpty(item.SuppliedBy, "TBD"),
+				PricingStatus:        pricingStatus,
+				SortOrder:            len(preview.Items),
+			})
+			for _, risk := range item.RiskFlags {
+				risk = strings.TrimSpace(risk)
+				if risk == "" {
+					continue
+				}
+				riskSourceID := item.ID
+				preview.Warnings = append(preview.Warnings, quoteWarningPayload{
+					SourceEstimateItemID: &riskSourceID,
+					ObjectType:           itemName,
+					Message:              risk,
+				})
+			}
+		}
+	}
+	return nil
 }
 
 func (h BusinessHandler) annotationNotesByObject(c *gin.Context, companyID uuid.UUID, projectID uuid.UUID) (map[uuid.UUID]string, error) {
@@ -437,10 +457,14 @@ func (h BusinessHandler) getQuotePayload(c *gin.Context, companyID uuid.UUID, qu
 
 func (h BusinessHandler) listQuoteItems(c *gin.Context, companyID uuid.UUID, quoteID uuid.UUID) ([]quoteItemPayload, error) {
 	rows, err := h.db.Query(c.Request.Context(), `
-		SELECT id, product_id, source_object_id, product_name_snapshot, COALESCE(sku_snapshot, ''),
+		SELECT id, COALESCE(product_id::text, ''), COALESCE(source_object_id::text, ''),
+		       source_kind, COALESCE(source_estimate_item_id::text, ''),
+		       product_name_snapshot, COALESCE(sku_snapshot, ''),
 		       COALESCE(brand_snapshot, ''), COALESCE(category_snapshot, ''), unit_snapshot,
 		       unit_price_snapshot::float8, quantity::float8, discount_amount::float8, installation_fee::float8,
-		       line_total::float8, COALESCE(notes_snapshot, ''), is_contract_visible, sort_order
+		       line_total::float8, COALESCE(notes_snapshot, ''), is_contract_visible,
+		       COALESCE(room_snapshot, ''), COALESCE(scope_snapshot, ''), COALESCE(material_snapshot, ''),
+		       COALESCE(supplied_by_snapshot, ''), pricing_status, sort_order
 		FROM quote_items
 		WHERE company_id=$1 AND quote_id=$2
 		ORDER BY sort_order ASC, created_at ASC
@@ -454,14 +478,23 @@ func (h BusinessHandler) listQuoteItems(c *gin.Context, companyID uuid.UUID, quo
 		var item quoteItemPayload
 		var id uuid.UUID
 		if err := rows.Scan(
-			&id, &item.ProductID, &item.SourceObjectID, &item.ProductNameSnapshot, &item.SKUSnapshot,
+			&id, uuidTextScanner(&item.ProductID), uuidTextScanner(&item.SourceObjectID),
+			&item.SourceKind, uuidTextScanner(&item.SourceEstimateItemID),
+			&item.ProductNameSnapshot, &item.SKUSnapshot,
 			&item.BrandSnapshot, &item.CategorySnapshot, &item.UnitSnapshot, &item.UnitPriceSnapshot,
 			&item.Quantity, &item.DiscountAmount, &item.InstallationFee, &item.LineTotal,
-			&item.NotesSnapshot, &item.IsContractVisible, &item.SortOrder,
+			&item.NotesSnapshot, &item.IsContractVisible, &item.RoomSnapshot, &item.ScopeSnapshot,
+			&item.MaterialSnapshot, &item.SuppliedBySnapshot, &item.PricingStatus, &item.SortOrder,
 		); err != nil {
 			return nil, err
 		}
 		item.ID = &id
+		if item.SourceKind == "" {
+			item.SourceKind = "drawing_object"
+		}
+		if item.PricingStatus == "" {
+			item.PricingStatus = "pending"
+		}
 		items = append(items, item)
 	}
 	return items, rows.Err()
@@ -703,4 +736,21 @@ func nonEmptyStrings(values ...string) []string {
 		}
 	}
 	return out
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func optionalStringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }

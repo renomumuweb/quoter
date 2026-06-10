@@ -1,11 +1,11 @@
 import SwiftUI
 import UIKit
 
-private func estimateLocalized(_ key: String) -> String {
+private func scopeLocalized(_ key: String) -> String {
     AppLanguage.localizedString(key)
 }
 
-private func estimateDisplayName(_ value: String) -> String {
+private func scopeDisplayName(_ value: String) -> String {
     if value == "Other" {
         return AppLanguage.localizedString("Other Category")
     }
@@ -13,42 +13,61 @@ private func estimateDisplayName(_ value: String) -> String {
 }
 
 struct EstimateTemplateView: View {
+    let project: Project
+
+    var body: some View {
+        QuoteScopeBuilderView(project: project)
+    }
+}
+
+struct QuoteScopeBuilderView: View {
     @EnvironmentObject private var appState: AppState
     let project: Project
-    @StateObject private var viewModel: EstimateTemplateViewModel
+    @StateObject private var viewModel: QuoteScopeBuilderViewModel
     @State private var newCategoryName = ""
     @State private var showingNewCategory = false
-    @State private var renamingCategory: EstimateCategory?
-    @State private var categoryName = ""
     @State private var templateName = ""
     @State private var showingSaveTemplate = false
-    @State private var editingItem: EstimateItemEditContext?
+    @State private var renamingCategory: EstimateCategory?
+    @State private var categoryName = ""
 
     init(project: Project) {
         self.project = project
-        _viewModel = StateObject(wrappedValue: EstimateTemplateViewModel(projectID: project.id))
+        _viewModel = StateObject(wrappedValue: QuoteScopeBuilderViewModel(projectID: project.id))
     }
 
     var body: some View {
         Group {
             if let estimateBinding {
-                estimateEditor(estimate: estimateBinding)
+                scopeEditor(estimate: estimateBinding)
             } else {
                 renovationTypePicker
             }
         }
-        .navigationTitle("Estimate Template")
+        .navigationTitle("Quote Scope Builder")
         .toolbar {
-            if viewModel.estimate != nil {
-                ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
+                if viewModel.estimate != nil {
                     Button {
-                        showingSaveTemplate = true
+                        Task { await viewModel.saveCurrentEstimate() }
                     } label: {
-                        Label("Save Template", systemImage: "tray.and.arrow.down")
+                        Label(scopeLocalized(viewModel.isSaving ? "Saving" : "Save Scope"), systemImage: "square.and.arrow.down")
                     }
-                    .disabled(viewModel.isSavingTemplate)
+                    .disabled(viewModel.isSaving)
 
                     Menu {
+                        Button {
+                            Task { await viewModel.importDrawingItems() }
+                        } label: {
+                            Label("Import from Drawing", systemImage: "arrow.down.doc")
+                        }
+
+                        Button {
+                            showingSaveTemplate = true
+                        } label: {
+                            Label("Save Template", systemImage: "tray.and.arrow.down")
+                        }
+
                         Button {
                             showingNewCategory = true
                         } label: {
@@ -67,25 +86,12 @@ struct EstimateTemplateView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if let estimate = viewModel.estimate {
-                EstimateTotalBar(
-                    subtotal: estimate.subtotal,
-                    tax: estimate.taxTotal,
-                    total: estimate.total,
-                    hiddenCount: viewModel.hiddenItemCount
-                )
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if let message = viewModel.statusMessage {
-                Text(estimateLocalized(message))
-                    .font(.footnote.weight(.semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.bottom, viewModel.estimate == nil ? 12 : 72)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+            QuoteScopeStatusBar(
+                selectedCount: viewModel.selectedItemCount,
+                warningCount: viewModel.warningCount,
+                isSaving: viewModel.isSaving,
+                message: viewModel.statusMessage ?? viewModel.errorMessage
+            )
         }
         .alert("Add Category", isPresented: $showingNewCategory) {
             TextField("Category name", text: $newCategoryName)
@@ -120,7 +126,7 @@ struct EstimateTemplateView: View {
             }
         }
         .alert("Save Current Estimate as Template", isPresented: $showingSaveTemplate) {
-            TextField(estimateLocalized("Template name"), text: $templateName)
+            TextField(scopeLocalized("Template name"), text: $templateName)
             Button("Cancel", role: .cancel) {
                 templateName = ""
             }
@@ -131,12 +137,7 @@ struct EstimateTemplateView: View {
                 templateName = ""
             }
         } message: {
-            Text("This saves the category structure and any reusable items for future projects.")
-        }
-        .sheet(item: $editingItem) { context in
-            EstimateItemEditorView(context: context, products: viewModel.products) { item in
-                viewModel.saveItem(item, isNew: context.isNew)
-            }
+            Text("This saves the scope structure without pricing for future projects.")
         }
         .task {
             viewModel.configure(apiClient: appState.apiClient)
@@ -149,7 +150,7 @@ struct EstimateTemplateView: View {
         return Binding {
             viewModel.estimate ?? EstimateTemplate.makeDefault(projectID: project.id, type: .customProject)
         } set: { updated in
-            viewModel.replaceEstimate(updated, shouldPersist: true)
+            viewModel.replaceEstimate(updated)
         }
     }
 
@@ -159,7 +160,7 @@ struct EstimateTemplateView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(project.title)
                         .font(.headline)
-                    Text("Choose a contractor-friendly estimate structure. Categories stay broad so each site can define its own materials, labor, and subcontractor lines.")
+                    Text("Choose the scope structure. The field team records rooms, materials, quantities, and notes only; pricing stays pending for office review.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -169,37 +170,20 @@ struct EstimateTemplateView: View {
             if !viewModel.reusableTemplates.isEmpty {
                 Section("Create from Saved Template") {
                     ForEach(viewModel.reusableTemplates) { template in
-                        HStack {
-                            Button {
-                                viewModel.createFromReusableTemplate(template)
-                            } label: {
-                                Label(template.name, systemImage: template.renovationType.systemImage)
-                            }
-                            .buttonStyle(.plain)
-
-                            Spacer()
-
-                            Text(template.renovationType.localizedShortTitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Menu {
-                                Button {
-                                    viewModel.createFromReusableTemplate(template)
-                                } label: {
-                                    Label("Use Template", systemImage: "doc.on.clipboard")
+                        Button {
+                            Task { await viewModel.applyReusableTemplate(template) }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: template.renovationType.systemImage)
+                                    .foregroundStyle(.blue)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(template.name)
+                                        .font(.body.weight(.medium))
+                                    Text(template.renovationType.localizedShortTitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
-
-                                Button(role: .destructive) {
-                                    Task {
-                                        await viewModel.deleteReusableTemplate(template)
-                                    }
-                                } label: {
-                                    Label("Delete Template", systemImage: "trash")
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -218,7 +202,7 @@ struct EstimateTemplateView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(type.localizedTitle)
                                     .font(.body.weight(.medium))
-                                Text(String(format: estimateLocalized("%d categories"), type.defaultCategoryNames.count))
+                                Text(String(format: scopeLocalized("%d categories"), QuoteScopeCatalog.categories(for: type).count))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -228,19 +212,9 @@ struct EstimateTemplateView: View {
                 }
             }
         }
-        .overlay(alignment: .bottom) {
-            if let message = viewModel.errorMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.regularMaterial)
-            }
-        }
     }
 
-    private func estimateEditor(estimate: Binding<EstimateTemplate>) -> some View {
+    private func scopeEditor(estimate: Binding<EstimateTemplate>) -> some View {
         List {
             Section {
                 TextField("Search item or category", text: $viewModel.searchText)
@@ -249,20 +223,13 @@ struct EstimateTemplateView: View {
                 Toggle("Hide unselected items", isOn: $viewModel.hideUnselectedItems)
 
                 HStack {
-                    Button {
-                        showingNewCategory = true
-                    } label: {
-                        Label("Add Category", systemImage: "folder.badge.plus")
-                    }
-
+                    Label("Pricing pending", systemImage: "clock.badge.exclamationmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.orange)
                     Spacer()
-
-                    Button {
-                        showingSaveTemplate = true
-                    } label: {
-                        Label(estimateLocalized(viewModel.isSavingTemplate ? "Saving" : "Save Template"), systemImage: "tray.and.arrow.down")
-                    }
-                    .disabled(viewModel.isSavingTemplate)
+                    Text("\(viewModel.selectedItemCount) selected")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -270,19 +237,15 @@ struct EstimateTemplateView: View {
                 HStack {
                     Label(estimate.wrappedValue.renovationType.localizedTitle, systemImage: estimate.wrappedValue.renovationType.systemImage)
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(DecimalFormatter.currency(estimate.wrappedValue.total))
-                            .font(.headline)
-                        Text("Includes HST 13%")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("No field pricing")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
                 }
             }
 
             ForEach(estimate.categories) { category in
                 if viewModel.shouldShowCategory(category.wrappedValue) {
-                    EstimateCategoryDisclosure(
+                    ScopeCategoryDisclosure(
                         category: category,
                         isExpanded: viewModel.isExpanded(category.wrappedValue),
                         hideUnselectedItems: viewModel.hideUnselectedItems,
@@ -291,18 +254,14 @@ struct EstimateTemplateView: View {
                             viewModel.toggleExpanded(category.wrappedValue)
                         },
                         onAddItem: {
-                            let item = EstimateItem(categoryID: category.wrappedValue.id)
-                            editingItem = EstimateItemEditContext(item: item, categoryName: estimateDisplayName(category.wrappedValue.name), isNew: true)
+                            viewModel.addItem(to: category.wrappedValue)
                         },
                         onRenameCategory: {
-                            categoryName = estimateDisplayName(category.wrappedValue.name)
+                            categoryName = scopeDisplayName(category.wrappedValue.name)
                             renamingCategory = category.wrappedValue
                         },
                         onDeleteCategory: {
                             viewModel.deleteCategory(category.wrappedValue)
-                        },
-                        onEditItem: { item in
-                            editingItem = EstimateItemEditContext(item: item, categoryName: estimateDisplayName(category.wrappedValue.name), isNew: false)
                         },
                         onDuplicateItem: { item in
                             viewModel.duplicateItem(item, in: category.wrappedValue)
@@ -310,8 +269,8 @@ struct EstimateTemplateView: View {
                         onDeleteItem: { item in
                             viewModel.deleteItem(item, in: category.wrappedValue)
                         },
-                        onPersist: {
-                            viewModel.persistCurrentEstimate()
+                        onChanged: {
+                            viewModel.markChanged()
                         }
                     )
                 }
@@ -320,7 +279,7 @@ struct EstimateTemplateView: View {
     }
 }
 
-private struct EstimateCategoryDisclosure: View {
+private struct ScopeCategoryDisclosure: View {
     @Binding var category: EstimateCategory
     let isExpanded: Bool
     let hideUnselectedItems: Bool
@@ -329,10 +288,9 @@ private struct EstimateCategoryDisclosure: View {
     let onAddItem: () -> Void
     let onRenameCategory: () -> Void
     let onDeleteCategory: () -> Void
-    let onEditItem: (EstimateItem) -> Void
     let onDuplicateItem: (EstimateItem) -> Void
     let onDeleteItem: (EstimateItem) -> Void
-    let onPersist: () -> Void
+    let onChanged: () -> Void
 
     var body: some View {
         Section {
@@ -344,15 +302,13 @@ private struct EstimateCategoryDisclosure: View {
                         Image(systemName: isExpanded ? "chevron.down.circle.fill" : "chevron.right.circle")
                             .foregroundStyle(.blue)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(estimateDisplayName(category.name))
+                            Text(scopeDisplayName(category.name))
                                 .font(.headline)
-                            Text(String(format: estimateLocalized("%d items"), visibleItems.count))
+                            Text("\(selectedItems.count) selected / \(category.items.count) items")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(DecimalFormatter.currency(category.selectedTotal))
-                            .font(.subheadline.weight(.semibold))
                     }
                 }
                 .buttonStyle(.plain)
@@ -386,37 +342,33 @@ private struct EstimateCategoryDisclosure: View {
 
             if isExpanded {
                 if visibleItems.isEmpty {
-                    Button {
-                        onAddItem()
-                    } label: {
-                        Label("Add Item", systemImage: "plus.circle.fill")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    ContentUnavailableView("No scope items", systemImage: "checklist")
+                        .frame(minHeight: 120)
                 } else {
                     ForEach($category.items) { $item in
                         if shouldShowItem(item) {
-                            EstimateItemCard(
+                            ScopeItemCard(
                                 item: $item,
-                                onEdit: { onEditItem(item) },
                                 onDuplicate: { onDuplicateItem(item) },
                                 onDelete: { onDeleteItem(item) },
-                                onPersist: onPersist
+                                onChanged: onChanged
                             )
                         }
                     }
                 }
 
-                if !visibleItems.isEmpty {
-                    Button {
-                        onAddItem()
-                    } label: {
-                        Label("Add Item", systemImage: "plus.circle.fill")
-                    }
-                    .buttonStyle(.bordered)
+                Button {
+                    onAddItem()
+                } label: {
+                    Label("Add Item", systemImage: "plus.circle.fill")
                 }
+                .buttonStyle(.bordered)
             }
         }
+    }
+
+    private var selectedItems: [EstimateItem] {
+        category.items.filter(\.selected)
     }
 
     private var visibleItems: [EstimateItem] {
@@ -429,32 +381,27 @@ private struct EstimateCategoryDisclosure: View {
         }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return true }
-        if category.name.localizedCaseInsensitiveContains(query)
-            || estimateDisplayName(category.name).localizedCaseInsensitiveContains(query) {
-            return true
-        }
-        return item.itemName.localizedCaseInsensitiveContains(query)
-            || item.description.localizedCaseInsensitiveContains(query)
-            || (item.skuSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
-            || (item.brandSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
-            || (item.materialSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
+        return category.name.localizedCaseInsensitiveContains(query)
+            || item.itemName.localizedCaseInsensitiveContains(query)
+            || item.roomName.localizedCaseInsensitiveContains(query)
+            || item.roomType.localizedCaseInsensitiveContains(query)
+            || item.materialChoice.localizedCaseInsensitiveContains(query)
             || item.notes.localizedCaseInsensitiveContains(query)
     }
 }
 
-private struct EstimateItemCard: View {
+private struct ScopeItemCard: View {
     @Binding var item: EstimateItem
-    let onEdit: () -> Void
     let onDuplicate: () -> Void
     let onDelete: () -> Void
-    let onPersist: () -> Void
+    let onChanged: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 10) {
                 Button {
                     item.selected.toggle()
-                    onPersist()
+                    onChanged()
                 } label: {
                     Image(systemName: item.selected ? "checkmark.circle.fill" : "circle")
                         .font(.title3)
@@ -462,67 +409,111 @@ private struct EstimateItemCard: View {
                 }
                 .buttonStyle(.plain)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    TextField(estimateLocalized("Item Name"), text: $item.itemName)
+                VStack(alignment: .leading, spacing: 5) {
+                    TextField("Scope item", text: $item.itemName)
                         .font(.headline)
-                        .onSubmit(onPersist)
-                    if let catalogSummary = item.catalogSummary {
-                        Text(catalogSummary)
-                            .font(.caption)
+                        .onSubmit(onChanged)
+                    if !item.scopeCode.isEmpty {
+                        Text(item.scopeCode.replacingOccurrences(of: "_", with: " "))
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                    if !item.notes.isEmpty {
-                        Text(item.notes)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
                     }
                 }
 
                 Spacer()
 
-                Text(DecimalFormatter.currency(item.subtotal))
-                    .font(.subheadline.weight(.semibold))
-            }
+                Text("Pending")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.12), in: Capsule())
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                DecimalEntryField(title: "Qty", value: $item.quantity, keyboardType: .decimalPad, onCommit: onPersist)
-                TextEntryField(title: "Unit", text: $item.unit, onCommit: onPersist)
-                DecimalEntryField(title: "Material Cost", value: $item.costs.materialCost, keyboardType: .decimalPad, onCommit: onPersist)
-                DecimalEntryField(title: "Labor Cost", value: $item.costs.laborCost, keyboardType: .decimalPad, onCommit: onPersist)
-                DecimalEntryField(title: "Subcontractor Cost", value: $item.costs.subcontractorCost, keyboardType: .decimalPad, onCommit: onPersist)
-                DecimalEntryField(title: "Other Cost", value: $item.costs.otherCost, keyboardType: .decimalPad, onCommit: onPersist)
-                DecimalEntryField(title: "Markup", value: $item.costs.markup, keyboardType: .decimalPad, onCommit: onPersist)
-            }
-
-            TextEntryField(title: "Notes", text: $item.notes, onCommit: onPersist)
-
-            HStack {
-                Button {
-                    onEdit()
+                Menu {
+                    Button {
+                        onDuplicate()
+                    } label: {
+                        Label("Copy Item", systemImage: "doc.on.doc")
+                    }
+                    Button(role: .destructive) {
+                        onDelete()
+                    } label: {
+                        Label("Delete Item", systemImage: "trash")
+                    }
                 } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-
-                Spacer()
-
-                Button {
-                    onDuplicate()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label("Delete", systemImage: "trash")
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(.secondary)
                 }
             }
-            .font(.footnote.weight(.semibold))
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
+                TextEntryField(title: "Room Name", text: $item.roomName, onCommit: onChanged)
+                PickerEntryField(title: "Room Type", selection: $item.roomType, options: QuoteScopeCatalog.roomTypes, onChange: onChanged)
+                PickerEntryField(title: "Floor Level", selection: $item.floorLevel, options: QuoteScopeCatalog.floorLevels, onChange: onChanged)
+                DecimalEntryField(title: "Quantity", value: $item.quantity, keyboardType: .decimalPad, onCommit: onChanged)
+                PickerEntryField(title: "Unit", selection: $item.unit, options: UnitType.allCases.map(\.rawValue), onChange: onChanged)
+                PickerEntryField(title: "Supplied By", selection: $item.suppliedBy, options: QuoteScopeCatalog.suppliedByOptions, onChange: onChanged)
+            }
+
+            if !materialOptions.isEmpty {
+                Picker("Material / Spec", selection: $item.materialChoice) {
+                    Text("TBD").tag("")
+                    ForEach(materialOptions, id: \.self) { option in
+                        Text(AppLanguage.localizedKnownSystemString(option)).tag(option)
+                    }
+                }
+                .onChange(of: item.materialChoice) { _, _ in onChanged() }
+            }
+
+            TextField("Material / Spec Notes", text: $item.materialChoice, axis: .vertical)
+                .lineLimit(1...3)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(onChanged)
+
+            TextField("Notes", text: $item.notes, axis: .vertical)
+                .lineLimit(2...5)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(onChanged)
+
+            if !item.riskFlags.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(item.riskFlags, id: \.self) { warning in
+                        Label(warning, systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
         }
-        .padding(.vertical, 6)
-        .opacity(item.selected ? 1 : 0.58)
+        .padding(.vertical, 8)
+        .onChange(of: item.selected) { _, _ in onChanged() }
+    }
+
+    private var materialOptions: [String] {
+        QuoteScopeCatalog.materialOptions(for: item.scopeCode)
+    }
+}
+
+private struct PickerEntryField: View {
+    let title: String
+    @Binding var selection: String
+    let options: [String]
+    let onChange: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(scopeLocalized(title))
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Picker(scopeLocalized(title), selection: $selection) {
+                Text("TBD").tag("")
+                ForEach(options, id: \.self) { option in
+                    Text(AppLanguage.localizedKnownSystemString(option)).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: selection) { _, _ in onChange() }
+        }
     }
 }
 
@@ -536,15 +527,16 @@ private struct DecimalEntryField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(estimateLocalized(title))
+            Text(scopeLocalized(title))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            TextField(estimateLocalized("0"), text: $text)
+            TextField(scopeLocalized("0"), text: $text)
                 .keyboardType(keyboardType)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
                 .onChange(of: text) { _, newValue in
-                    value = Decimal(string: newValue) ?? 0
+                    let parsed = Decimal(string: newValue) ?? 0
+                    value = Swift.max(parsed, Decimal(0))
                 }
                 .onChange(of: isFocused) { _, focused in
                     if !focused {
@@ -576,309 +568,109 @@ private struct TextEntryField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(estimateLocalized(title))
+            Text(scopeLocalized(title))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            TextField(estimateLocalized(title), text: $text)
+            TextField(scopeLocalized(title), text: $text)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(onCommit)
-                .onChange(of: text) { _, _ in
-                    onCommit()
-                }
         }
     }
 }
 
-private struct EstimateItemEditorView: View {
-    @Environment(\.dismiss) private var dismiss
-    let context: EstimateItemEditContext
-    let products: [Product]
-    let onSave: (EstimateItem) -> Void
-    @State private var item: EstimateItem
-
-    init(context: EstimateItemEditContext, products: [Product], onSave: @escaping (EstimateItem) -> Void) {
-        self.context = context
-        self.products = products
-        self.onSave = onSave
-        _item = State(initialValue: context.item)
-    }
+private struct QuoteScopeStatusBar: View {
+    let selectedCount: Int
+    let warningCount: Int
+    let isSaving: Bool
+    let message: String?
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Catalog Product") {
-                    Picker("Product", selection: productSelection) {
-                        Text("Custom Item").tag(nil as UUID?)
-                        ForEach(products) { product in
-                            Text(product.productPickerTitle).tag(product.id as UUID?)
-                        }
-                    }
-
-                    if let catalogSummary = item.catalogSummary {
-                        Label(catalogSummary, systemImage: "shippingbox")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section(context.categoryName) {
-                    Toggle("Selected", isOn: $item.selected)
-                    TextField(estimateLocalized("Item Name"), text: $item.itemName)
-                    TextField(estimateLocalized("Description"), text: $item.description, axis: .vertical)
-                        .lineLimit(2...4)
-                }
-
-                Section("Quantity") {
-                    DecimalEntryField(title: "Quantity", value: $item.quantity, keyboardType: .decimalPad, onCommit: {})
-                    Picker("Unit", selection: $item.unit) {
-                        ForEach(UnitType.allCases) { unit in
-                            Text(unit.localizedTitle).tag(unit.rawValue)
-                        }
-                    }
-                    TextField(estimateLocalized("Custom Unit"), text: $item.unit)
-                }
-
-                Section("Costs") {
-                    DecimalEntryField(title: "Material Cost", value: $item.costs.materialCost, keyboardType: .decimalPad, onCommit: {})
-                    DecimalEntryField(title: "Labor Cost", value: $item.costs.laborCost, keyboardType: .decimalPad, onCommit: {})
-                    DecimalEntryField(title: "Subcontractor Cost", value: $item.costs.subcontractorCost, keyboardType: .decimalPad, onCommit: {})
-                    DecimalEntryField(title: "Other Cost", value: $item.costs.otherCost, keyboardType: .decimalPad, onCommit: {})
-                    DecimalEntryField(title: "Markup", value: $item.costs.markup, keyboardType: .decimalPad, onCommit: {})
-                }
-
-                Section("Notes") {
-                    TextField(estimateLocalized("Notes"), text: $item.notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-
-                Section {
-                    HStack {
-                        Text("Subtotal")
-                        Spacer()
-                        Text(DecimalFormatter.currency(item.subtotal))
-                            .font(.headline)
-                    }
-                }
-            }
-            .navigationTitle(estimateLocalized(context.isNew ? "New Item" : "Edit Item"))
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(item)
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-
-    private var productSelection: Binding<UUID?> {
-        Binding {
-            item.productID
-        } set: { productID in
-            if let productID,
-               let product = products.first(where: { $0.id == productID }) {
-                item.apply(product: product)
-            } else {
-                item.clearProductLink()
-            }
-        }
-    }
-}
-
-private extension EstimateItem {
-    var catalogSummary: String? {
-        guard productID != nil else { return nil }
-        var parts: [String] = []
-        if let skuSnapshot, !skuSnapshot.trimmedForEstimate.isEmpty {
-            parts.append(skuSnapshot)
-        }
-        if let brandSnapshot, !brandSnapshot.trimmedForEstimate.isEmpty {
-            parts.append(brandSnapshot)
-        }
-        if let productCategorySnapshot, !productCategorySnapshot.trimmedForEstimate.isEmpty {
-            parts.append(AppLanguage.localizedKnownSystemString(productCategorySnapshot))
-        }
-        if let materialSnapshot, !materialSnapshot.trimmedForEstimate.isEmpty {
-            parts.append(materialSnapshot)
-        }
-        if let unitPriceSnapshot {
-            parts.append(DecimalFormatter.currency(unitPriceSnapshot))
-        }
-        return parts.isEmpty ? productNameSnapshot : parts.joined(separator: " | ")
-    }
-
-    mutating func apply(product: Product) {
-        productID = product.id
-        productNameSnapshot = product.name
-        skuSnapshot = product.sku
-        brandSnapshot = product.brand.nilIfBlankForEstimate
-        productCategorySnapshot = product.category
-        materialSnapshot = product.material?.nilIfBlankForEstimate
-        unitPriceSnapshot = product.currentPrice
-        itemName = product.name
-        if let productDescription = product.description?.nilIfBlankForEstimate {
-            description = productDescription
-        }
-        unit = product.unit.trimmedForEstimate.isEmpty ? UnitType.each.rawValue : product.unit
-        if let currentPrice = product.currentPrice {
-            costs.materialCost = currentPrice
-        }
-    }
-
-    mutating func clearProductLink() {
-        productID = nil
-        productNameSnapshot = nil
-        skuSnapshot = nil
-        brandSnapshot = nil
-        productCategorySnapshot = nil
-        materialSnapshot = nil
-        unitPriceSnapshot = nil
-    }
-}
-
-private extension Product {
-    var productPickerTitle: String {
-        var details: [String] = []
-        if let material, !material.trimmedForEstimate.isEmpty {
-            details.append(material)
-        }
-        if !sku.trimmedForEstimate.isEmpty {
-            details.append(sku)
-        }
-        if let currentPrice {
-            details.append(DecimalFormatter.currency(currentPrice))
-        }
-        guard !details.isEmpty else { return name }
-        return "\(name) (\(details.joined(separator: " | ")))"
-    }
-}
-
-private extension String {
-    var trimmedForEstimate: String {
-        trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    var nilIfBlankForEstimate: String? {
-        let value = trimmedForEstimate
-        return value.isEmpty ? nil : value
-    }
-}
-
-private struct EstimateTotalBar: View {
-    let subtotal: Decimal
-    let tax: Decimal
-    let total: Decimal
-    let hiddenCount: Int
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 12) {
-                    totalColumn(title: "Subtotal", value: subtotal)
-                    totalColumn(title: "HST 13%", value: tax)
-                }
-                Text(estimateLocalized("Estimate Total"))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            Label("\(selectedCount) scope items", systemImage: "checklist")
+            if warningCount > 0 {
+                Label("\(warningCount) warnings", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
             }
             Spacer()
-            VStack(alignment: .trailing, spacing: 3) {
-                Text(DecimalFormatter.currency(total))
-                    .font(.title3.weight(.bold))
-                if hiddenCount > 0 {
-                    Label(String(format: estimateLocalized("%d hidden"), hiddenCount), systemImage: "eye.slash")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+            if isSaving {
+                ProgressView()
+            }
+            if let message {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(message.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
+                    .lineLimit(1)
+            } else {
+                Text("Pricing pending")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
+        .font(.footnote)
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(.regularMaterial)
     }
-
-    private func totalColumn(title: String, value: Decimal) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(estimateLocalized(title))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(DecimalFormatter.currency(value))
-                .font(.caption.weight(.semibold))
-        }
-    }
-}
-
-private struct EstimateItemEditContext: Identifiable {
-    let item: EstimateItem
-    let categoryName: String
-    let isNew: Bool
-
-    var id: UUID { item.id }
 }
 
 @MainActor
-final class EstimateTemplateViewModel: ObservableObject {
+final class QuoteScopeBuilderViewModel: ObservableObject {
     @Published var estimate: EstimateTemplate?
     @Published private(set) var reusableTemplates: [EstimateTemplate] = []
-    @Published private(set) var products: [Product] = []
     @Published var searchText = ""
     @Published var hideUnselectedItems = false
-    @Published private(set) var isSavingTemplate = false
+    @Published private(set) var isSaving = false
     @Published var errorMessage: String?
     @Published var statusMessage: String?
+    @Published private(set) var hasUnsavedChanges = false
 
     private let projectID: UUID
     private let store = EstimateStore()
     private var service: EstimateTemplateService?
-    private var productService: ProductService?
     private var expandedCategoryIDs: Set<UUID> = []
 
     init(projectID: UUID) {
         self.projectID = projectID
     }
 
+    var selectedItemCount: Int {
+        estimate?.categories.flatMap(\.items).filter(\.selected).count ?? 0
+    }
+
+    var warningCount: Int {
+        estimate?.categories.flatMap(\.items).flatMap(\.riskFlags).count ?? 0
+    }
+
     func configure(apiClient: APIClient) {
         if service == nil {
             service = EstimateTemplateService(apiClient: apiClient)
         }
-        if productService == nil {
-            productService = ProductService(apiClient: apiClient)
-        }
-    }
-
-    var hiddenItemCount: Int {
-        guard hideUnselectedItems, let estimate else { return 0 }
-        return estimate.categories.flatMap(\.items).filter { !$0.selected }.count
     }
 
     func load() async {
         do {
-            estimate = try store.loadProjectEstimate(projectID: projectID)
-            if let estimate {
-                expandedCategoryIDs = Set(estimate.categories.prefix(4).map(\.id))
-            }
-            errorMessage = nil
-        } catch {
-            errorMessage = AppLanguage.localizedErrorDescription(error)
-        }
-
-        do {
-            if let service, let productService {
-                async let loadedTemplates = service.listTemplates()
-                async let loadedProducts = productService.listProducts()
-                reusableTemplates = try await loadedTemplates
-                products = try await loadedProducts
+            if let service {
+                let loaded = try await service.getProjectEstimate(projectID: projectID)
+                if loaded.categories.isEmpty {
+                    estimate = nil
+                    expandedCategoryIDs = []
+                } else {
+                    estimate = loaded
+                    expandedCategoryIDs = Set(loaded.categories.prefix(4).map(\.id))
+                }
+                reusableTemplates = try await service.listTemplates()
             } else {
+                estimate = try store.loadProjectEstimate(projectID: projectID)
                 reusableTemplates = try store.loadReusableTemplates()
             }
             errorMessage = nil
         } catch {
+            do {
+                estimate = try store.loadProjectEstimate(projectID: projectID)
+                reusableTemplates = try store.loadReusableTemplates()
+            } catch {
+                // Keep the API error as the visible message.
+            }
             errorMessage = AppLanguage.localizedErrorDescription(error)
         }
     }
@@ -887,14 +679,39 @@ final class EstimateTemplateViewModel: ObservableObject {
         let newEstimate = EstimateTemplate.makeDefault(projectID: projectID, type: type, name: name)
         estimate = newEstimate
         expandedCategoryIDs = Set(newEstimate.categories.prefix(4).map(\.id))
-        persistCurrentEstimate()
+        Task { await saveCurrentEstimate() }
     }
 
-    func createFromReusableTemplate(_ template: EstimateTemplate) {
-        let copy = template.projectCopy(projectID: projectID, named: template.name)
-        estimate = copy
-        expandedCategoryIDs = Set(copy.categories.prefix(4).map(\.id))
-        persistCurrentEstimate()
+    func applyReusableTemplate(_ template: EstimateTemplate) async {
+        do {
+            if let service {
+                let applied = try await service.applyTemplate(projectID: projectID, templateID: template.id)
+                estimate = applied
+                expandedCategoryIDs = Set(applied.categories.prefix(4).map(\.id))
+            } else {
+                let copy = template.projectCopy(projectID: projectID, named: template.name)
+                estimate = copy
+                expandedCategoryIDs = Set(copy.categories.prefix(4).map(\.id))
+                try store.saveProjectEstimate(copy, projectID: projectID)
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = AppLanguage.localizedErrorDescription(error)
+        }
+    }
+
+    func importDrawingItems() async {
+        do {
+            if let service {
+                let imported = try await service.importDrawingItems(projectID: projectID)
+                estimate = imported
+                expandedCategoryIDs = Set(imported.categories.map(\.id))
+                showStatus("Drawing items imported")
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = AppLanguage.localizedErrorDescription(error)
+        }
     }
 
     func clearCurrentEstimate() {
@@ -908,17 +725,32 @@ final class EstimateTemplateViewModel: ObservableObject {
         }
     }
 
-    func replaceEstimate(_ updated: EstimateTemplate, shouldPersist: Bool) {
-        estimate = updated
-        if shouldPersist {
-            persistCurrentEstimate()
-        }
+    func replaceEstimate(_ updated: EstimateTemplate) {
+        estimate = sanitize(updated)
+        markUnsaved()
     }
 
-    func persistCurrentEstimate() {
+    func markChanged() {
         guard let estimate else { return }
+        self.estimate = sanitize(estimate)
+        markUnsaved()
+    }
+
+    func saveCurrentEstimate() async {
+        guard let estimate else { return }
+        isSaving = true
+        defer { isSaving = false }
         do {
-            try store.saveProjectEstimate(estimate, projectID: projectID)
+            let sanitized = sanitize(estimate)
+            if let service {
+                let saved = try await service.saveProjectEstimate(sanitized, projectID: projectID)
+                self.estimate = saved
+            } else {
+                try store.saveProjectEstimate(sanitized, projectID: projectID)
+                self.estimate = sanitized
+            }
+            showStatus("Scope saved")
+            hasUnsavedChanges = false
             errorMessage = nil
         } catch {
             errorMessage = AppLanguage.localizedErrorDescription(error)
@@ -929,31 +761,19 @@ final class EstimateTemplateViewModel: ObservableObject {
         guard let estimate else { return }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
-        isSavingTemplate = true
-        defer { isSavingTemplate = false }
+        isSaving = true
+        defer { isSaving = false }
         do {
+            let sanitized = sanitize(estimate)
             if let service {
-                let saved = try await service.saveTemplate(estimate, name: name, projectID: projectID)
+                let saved = try await service.saveTemplate(sanitized, name: name, projectID: projectID)
                 reusableTemplates.removeAll { $0.id == saved.id || $0.name.caseInsensitiveCompare(saved.name) == .orderedSame }
                 reusableTemplates.insert(saved, at: 0)
             } else {
-                try store.saveReusableTemplate(estimate, name: name)
+                try store.saveReusableTemplate(sanitized, name: name)
                 reusableTemplates = try store.loadReusableTemplates()
             }
             showStatus("Template saved")
-            errorMessage = nil
-        } catch {
-            errorMessage = AppLanguage.localizedErrorDescription(error)
-        }
-    }
-
-    func deleteReusableTemplate(_ template: EstimateTemplate) async {
-        do {
-            if let service {
-                try await service.deleteTemplate(id: template.id)
-                reusableTemplates.removeAll { $0.id == template.id }
-            }
-            showStatus("Template deleted")
             errorMessage = nil
         } catch {
             errorMessage = AppLanguage.localizedErrorDescription(error)
@@ -968,7 +788,7 @@ final class EstimateTemplateViewModel: ObservableObject {
         estimate.categories.append(category)
         self.estimate = estimate
         expandedCategoryIDs.insert(category.id)
-        persistCurrentEstimate()
+        markUnsaved()
     }
 
     func renameCategory(_ category: EstimateCategory, to rawName: String) {
@@ -978,7 +798,7 @@ final class EstimateTemplateViewModel: ObservableObject {
         guard !name.isEmpty else { return }
         estimate.categories[categoryIndex].name = name
         self.estimate = estimate
-        persistCurrentEstimate()
+        markUnsaved()
     }
 
     func deleteCategory(_ category: EstimateCategory) {
@@ -986,20 +806,25 @@ final class EstimateTemplateViewModel: ObservableObject {
         estimate.categories.removeAll { $0.id == category.id }
         expandedCategoryIDs.remove(category.id)
         self.estimate = estimate
-        persistCurrentEstimate()
+        markUnsaved()
     }
 
-    func saveItem(_ item: EstimateItem, isNew: Bool) {
+    func addItem(to category: EstimateCategory) {
         guard var estimate,
-              let categoryIndex = estimate.categories.firstIndex(where: { $0.id == item.categoryID }) else { return }
-        if let itemIndex = estimate.categories[categoryIndex].items.firstIndex(where: { $0.id == item.id }) {
-            estimate.categories[categoryIndex].items[itemIndex] = item
-        } else if isNew {
-            estimate.categories[categoryIndex].items.append(item)
-        }
+              let categoryIndex = estimate.categories.firstIndex(where: { $0.id == category.id }) else { return }
+        let item = EstimateItem(
+            itemName: "Custom Scope Item",
+            categoryID: category.id,
+            scopeCode: "custom_scope_item",
+            suppliedBy: "TBD",
+            pricingStatus: "pending",
+            unit: UnitType.allowance.rawValue,
+            selected: true
+        )
+        estimate.categories[categoryIndex].items.append(item)
         self.estimate = estimate
-        expandedCategoryIDs.insert(item.categoryID)
-        persistCurrentEstimate()
+        expandedCategoryIDs.insert(category.id)
+        markUnsaved()
     }
 
     func duplicateItem(_ item: EstimateItem, in category: EstimateCategory) {
@@ -1010,7 +835,7 @@ final class EstimateTemplateViewModel: ObservableObject {
         copy.itemName = item.itemName.isEmpty ? "Copy" : "\(item.itemName) Copy"
         estimate.categories[categoryIndex].items.append(copy)
         self.estimate = estimate
-        persistCurrentEstimate()
+        markUnsaved()
     }
 
     func deleteItem(_ item: EstimateItem, in category: EstimateCategory) {
@@ -1018,7 +843,7 @@ final class EstimateTemplateViewModel: ObservableObject {
               let categoryIndex = estimate.categories.firstIndex(where: { $0.id == category.id }) else { return }
         estimate.categories[categoryIndex].items.removeAll { $0.id == item.id }
         self.estimate = estimate
-        persistCurrentEstimate()
+        markUnsaved()
     }
 
     func shouldShowCategory(_ category: EstimateCategory) -> Bool {
@@ -1028,13 +853,11 @@ final class EstimateTemplateViewModel: ObservableObject {
         }
         guard !query.isEmpty else { return true }
         return category.name.localizedCaseInsensitiveContains(query)
-            || estimateDisplayName(category.name).localizedCaseInsensitiveContains(query)
             || category.items.contains { item in
                 item.itemName.localizedCaseInsensitiveContains(query)
-                    || item.description.localizedCaseInsensitiveContains(query)
-                    || (item.skuSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
-                    || (item.brandSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
-                    || (item.materialSnapshot?.localizedCaseInsensitiveContains(query) ?? false)
+                    || item.roomName.localizedCaseInsensitiveContains(query)
+                    || item.roomType.localizedCaseInsensitiveContains(query)
+                    || item.materialChoice.localizedCaseInsensitiveContains(query)
                     || item.notes.localizedCaseInsensitiveContains(query)
             }
     }
@@ -1051,6 +874,24 @@ final class EstimateTemplateViewModel: ObservableObject {
         }
     }
 
+    private func sanitize(_ estimate: EstimateTemplate) -> EstimateTemplate {
+        var updated = estimate
+        for categoryIndex in updated.categories.indices {
+            for itemIndex in updated.categories[categoryIndex].items.indices {
+                if updated.categories[categoryIndex].items[itemIndex].quantity < 0 {
+                    updated.categories[categoryIndex].items[itemIndex].quantity = 0
+                }
+                if updated.categories[categoryIndex].items[itemIndex].suppliedBy.isEmpty {
+                    updated.categories[categoryIndex].items[itemIndex].suppliedBy = "TBD"
+                }
+                updated.categories[categoryIndex].items[itemIndex].pricingStatus = "pending"
+                updated.categories[categoryIndex].items[itemIndex].costs = .empty
+                updated.categories[categoryIndex].items[itemIndex].unitPriceSnapshot = nil
+            }
+        }
+        return updated
+    }
+
     private func showStatus(_ message: String) {
         withAnimation {
             statusMessage = message
@@ -1065,5 +906,10 @@ final class EstimateTemplateViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    private func markUnsaved() {
+        hasUnsavedChanges = true
+        statusMessage = "Unsaved changes"
     }
 }

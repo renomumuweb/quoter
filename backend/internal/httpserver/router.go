@@ -97,6 +97,11 @@ func registerBusinessRoutes(router *gin.RouterGroup, handler handlers.BusinessHa
 	router.PUT("/estimate-templates/:id", handler.UpdateEstimateTemplate)
 	router.DELETE("/estimate-templates/:id", handler.DeleteEstimateTemplate)
 
+	router.GET("/projects/:id/estimate", handler.GetProjectEstimate)
+	router.PUT("/projects/:id/estimate", handler.UpdateProjectEstimate)
+	router.POST("/projects/:id/estimate/apply-template", handler.ApplyEstimateTemplateToProject)
+	router.POST("/projects/:id/estimate/import-drawing-items", handler.ImportDrawingItemsToProjectEstimate)
+
 	router.GET("/projects/:id/drawing", handler.GetDrawing)
 	router.PUT("/projects/:id/drawing", handler.UpdateDrawing)
 	router.POST("/projects/:id/drawing/upload-url", handler.CreateDrawingUploadURL)

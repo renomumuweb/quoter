@@ -268,10 +268,10 @@ private struct QuotePreviewContent: View {
                     ForEach(preview.items) { item in
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text(item.productNameSnapshot)
+                                Text(AppLanguage.localizedKnownSystemString(item.productNameSnapshot, language: localization.language))
                                     .font(.headline)
                                 Spacer()
-                                Text(item.pricingStatus == "priced" ? DecimalFormatter.currency(item.lineTotal) : "Pending")
+                                Text(item.pricingStatus == "priced" ? DecimalFormatter.currency(item.lineTotal) : AppLanguage.localizedString("Pending", language: localization.language))
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(item.pricingStatus == "priced" ? .primary : .orange)
                             }
@@ -279,17 +279,17 @@ private struct QuotePreviewContent: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if let room = item.roomSnapshot, !room.isEmpty {
-                                Label(room, systemImage: "square.split.bottomrightquarter")
+                                Label(AppLanguage.localizedKnownSystemString(room, language: localization.language), systemImage: "square.split.bottomrightquarter")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             if let material = item.materialSnapshot, !material.isEmpty {
-                                Label(material, systemImage: "swatchpalette")
+                                Label(AppLanguage.localizedKnownSystemString(material, language: localization.language), systemImage: "swatchpalette")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             if let suppliedBy = item.suppliedBySnapshot, !suppliedBy.isEmpty {
-                                Label("Supplied by \(suppliedBy)", systemImage: "shippingbox")
+                                Label(AppLanguage.localizedFormat("Supplied by %@", language: localization.language, AppLanguage.localizedKnownSystemString(suppliedBy, language: localization.language)), systemImage: "shippingbox")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -453,14 +453,14 @@ final class QuotePreviewViewModel: ObservableObject {
         lines.append("\(AppLanguage.localizedString("Items", language: language)):")
         lines.append(contentsOf: preview.items.map { item in
             let details = nonEmptyPDFParts([
-                item.roomSnapshot.map { "\(AppLanguage.localizedString("Room", language: language)): \($0)" },
-                item.scopeSnapshot.map { "\(AppLanguage.localizedString("Scope", language: language)): \($0)" },
-                item.materialSnapshot.map { "\(AppLanguage.localizedString("Material", language: language)): \($0)" },
-                "\(AppLanguage.localizedString("Qty", language: language)) \(NSDecimalNumber(decimal: item.quantity).stringValue) \(item.unitSnapshot)",
-                item.suppliedBySnapshot.map { "\(AppLanguage.localizedString("Supplied By", language: language)): \($0)" },
+                item.roomSnapshot.map { "\(AppLanguage.localizedString("Room", language: language)): \(AppLanguage.localizedKnownSystemString($0, language: language))" },
+                item.scopeSnapshot.map { "\(AppLanguage.localizedString("Scope", language: language)): \(AppLanguage.localizedKnownSystemString($0, language: language))" },
+                item.materialSnapshot.map { "\(AppLanguage.localizedString("Material", language: language)): \(AppLanguage.localizedKnownSystemString($0, language: language))" },
+                "\(AppLanguage.localizedString("Qty", language: language)) \(NSDecimalNumber(decimal: item.quantity).stringValue) \(AppLanguage.localizedKnownSystemString(item.unitSnapshot, language: language))",
+                item.suppliedBySnapshot.map { "\(AppLanguage.localizedString("Supplied By", language: language)): \(AppLanguage.localizedKnownSystemString($0, language: language))" },
                 item.pricingStatus == "priced" ? DecimalFormatter.currency(item.lineTotal) : AppLanguage.localizedString("Pricing pending", language: language)
             ])
-            return "- \(item.productNameSnapshot) / \(details.joined(separator: " / "))"
+            return "- \(AppLanguage.localizedKnownSystemString(item.productNameSnapshot, language: language)) / \(details.joined(separator: " / "))"
         })
         if preview.hasPricedItems {
             lines.append("\(AppLanguage.localizedString("Subtotal", language: language)): \(DecimalFormatter.currency(preview.subtotal))")

@@ -204,7 +204,7 @@ private struct TutorialStep: Identifiable {
         TutorialStep(
             id: "customer",
             systemImage: "person.crop.rectangle.stack",
-            title: "1. 先创建客户",
+            title: "1. 创建客户",
             summary: "先确定这份报价是给谁的，避免后面的项目、合同和邮件混在一起。",
             bullets: [
                 "填写姓名、电话、邮箱、地址和备注。",
@@ -228,7 +228,7 @@ private struct TutorialStep: Identifiable {
             summary: "画笔负责解释现场布局，结构化对象负责生成报价明细。",
             bullets: [
                 "草图用来表达位置和施工关系。",
-                "对象要放在对应的草图项目旁边，后续产品绑定才不会错。"
+                "对象要放在对应的草图项目旁边，后续产品绑定才不容易出错。"
             ]
         ),
         TutorialStep(

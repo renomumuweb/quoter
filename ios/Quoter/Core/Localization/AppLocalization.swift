@@ -27,6 +27,20 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         }
     }
 
+    func displayName(in language: AppLanguage) -> String {
+        guard language == .simplifiedChinese else { return displayName }
+        switch self {
+        case .english:
+            return "英文"
+        case .simplifiedChinese:
+            return "简体中文"
+        case .french:
+            return "法语（预留）"
+        case .italian:
+            return "意大利语（预留）"
+        }
+    }
+
     var isSelectable: Bool {
         switch self {
         case .english, .simplifiedChinese:
@@ -133,24 +147,34 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         "completed": "Completed",
         "day": "Day",
         "dimension": "Dimension",
+        "door": "Door",
         "draft": "Draft",
         "ea": "Each",
         "each": "Each",
+        "fixture": "Fixture",
         "hr": "Hour",
         "hour": "Hour",
         "inactive": "Inactive",
         "issued": "Issued",
         "issue": "Issue",
         "job": "Job",
+        "light": "Light",
         "ln ft": "Linear Foot",
         "lot": "Lot",
         "note": "Note",
+        "opening": "Opening",
+        "outlet": "Outlet",
         "pending": "Pending",
+        "priced": "Priced",
         "product": "Product",
         "quoted": "Quoted",
+        "room": "Room",
         "service": "Service",
         "sq ft": "Square Foot",
         "sqft": "Square Foot",
+        "tbd": "TBD",
+        "client": "Client",
+        "company": "Company",
         "allowance": "Allowance",
         "admin": "Admin",
         "black": "Black",

@@ -9,7 +9,7 @@ struct SettingsView: View {
             Section("Language") {
                 Picker("Language", selection: languageBinding) {
                     ForEach(AppLanguage.allCases) { language in
-                        Text(language.displayName)
+                        Text(language.displayName(in: localization.language))
                             .tag(language)
                             .disabled(!language.isSelectable)
                     }

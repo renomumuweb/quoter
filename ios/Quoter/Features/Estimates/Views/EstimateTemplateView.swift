@@ -12,6 +12,14 @@ private func scopeDisplayName(_ value: String) -> String {
     return AppLanguage.localizedKnownSystemString(value)
 }
 
+private func localizedKnownBinding(_ text: Binding<String>) -> Binding<String> {
+    Binding {
+        AppLanguage.localizedKnownSystemString(text.wrappedValue)
+    } set: { value in
+        text.wrappedValue = value
+    }
+}
+
 struct EstimateTemplateView: View {
     let project: Project
 
@@ -227,7 +235,7 @@ struct QuoteScopeBuilderView: View {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.orange)
                     Spacer()
-                    Text("\(viewModel.selectedItemCount) selected")
+                    Text(AppLanguage.localizedFormat("%d selected", viewModel.selectedItemCount))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -304,7 +312,7 @@ private struct ScopeCategoryDisclosure: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(scopeDisplayName(category.name))
                                 .font(.headline)
-                            Text("\(selectedItems.count) selected / \(category.items.count) items")
+                            Text(AppLanguage.localizedFormat("%d selected / %d items", selectedItems.count, category.items.count))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -410,7 +418,7 @@ private struct ScopeItemCard: View {
                 .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 5) {
-                    TextField("Scope item", text: $item.itemName)
+                    TextField("Scope item", text: localizedKnownBinding($item.itemName))
                         .font(.headline)
                         .onSubmit(onChanged)
                     if !item.scopeCode.isEmpty {
@@ -478,7 +486,7 @@ private struct ScopeItemCard: View {
             if !item.riskFlags.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(item.riskFlags, id: \.self) { warning in
-                        Label(warning, systemImage: "exclamationmark.triangle")
+                        Label(AppLanguage.localizedKnownSystemString(warning), systemImage: "exclamationmark.triangle")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
@@ -586,9 +594,9 @@ private struct QuoteScopeStatusBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Label("\(selectedCount) scope items", systemImage: "checklist")
+            Label(AppLanguage.localizedFormat("%d scope items", selectedCount), systemImage: "checklist")
             if warningCount > 0 {
-                Label("\(warningCount) warnings", systemImage: "exclamationmark.triangle")
+                Label(AppLanguage.localizedFormat("%d warnings", warningCount), systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }
             Spacer()
@@ -596,7 +604,7 @@ private struct QuoteScopeStatusBar: View {
                 ProgressView()
             }
             if let message {
-                Text(message)
+                Text(AppLanguage.localizedKnownSystemString(message))
                     .font(.caption)
                     .foregroundStyle(message.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
                     .lineLimit(1)

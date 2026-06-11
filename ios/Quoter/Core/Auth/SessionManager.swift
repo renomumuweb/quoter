@@ -10,6 +10,8 @@ final class SessionManager: ObservableObject {
     private let authService: AuthService
     private let tokenStore: TokenStore
     private var tokenPair: TokenPair?
+    private var refreshTask: Task<AuthResponse, Error>?
+    private let refreshLeeway: TimeInterval = 60
 
     var isAuthenticated: Bool {
         currentUser != nil && tokenPair != nil
@@ -20,6 +22,10 @@ final class SessionManager: ObservableObject {
         self.tokenStore = tokenStore
         apiClient.accessTokenProvider = { [weak self] in
             await MainActor.run { self?.tokenPair?.accessToken }
+        }
+        apiClient.accessTokenRefreshHandler = { [weak self] forceRefresh in
+            guard let self else { return nil }
+            return try await self.validAccessToken(forceRefresh: forceRefresh)
         }
     }
 
@@ -60,6 +66,7 @@ final class SessionManager: ObservableObject {
     }
 
     func logout() async {
+        _ = try? await validAccessToken(forceRefresh: false)
         if let refreshToken = tokenPair?.refreshToken {
             try? await authService.logout(refreshToken: refreshToken)
         }
@@ -78,9 +85,21 @@ final class SessionManager: ObservableObject {
     }
 
     private func refreshSession() async throws {
+        if let refreshTask {
+            let response = try await refreshTask.value
+            try save(response: response, updateUser: currentUser == nil)
+            return
+        }
+
         guard let refreshToken = tokenPair?.refreshToken else { throw APIError.unauthorized }
-        let response = try await authService.refresh(refreshToken: refreshToken)
-        try save(response: response)
+        let task = Task { [authService] in
+            try await authService.refresh(refreshToken: refreshToken)
+        }
+        refreshTask = task
+        defer { refreshTask = nil }
+
+        let response = try await task.value
+        try save(response: response, updateUser: currentUser == nil)
     }
 
     private func loadMe() async throws {
@@ -89,7 +108,7 @@ final class SessionManager: ObservableObject {
         companyName = response.companyName
     }
 
-    private func save(response: AuthResponse) throws {
+    private func save(response: AuthResponse, updateUser: Bool = true) throws {
         let pair = TokenPair(
             accessToken: response.accessToken,
             refreshToken: response.refreshToken,
@@ -97,15 +116,39 @@ final class SessionManager: ObservableObject {
         )
         try tokenStore.save(pair)
         tokenPair = pair
-        currentUser = response.user
-        companyName = response.user.companyID.uuidString
+        if updateUser {
+            currentUser = response.user
+            if companyName.isEmpty {
+                companyName = response.user.companyID.uuidString
+            }
+        }
     }
 
     private func clearLocalSession() {
+        refreshTask?.cancel()
+        refreshTask = nil
         try? tokenStore.clear()
         tokenPair = nil
         currentUser = nil
         companyName = ""
+    }
+
+    private func validAccessToken(forceRefresh: Bool) async throws -> String? {
+        guard let pair = tokenPair else { return nil }
+
+        if !forceRefresh, pair.expiresAt > Date().addingTimeInterval(refreshLeeway) {
+            return pair.accessToken
+        }
+
+        do {
+            try await refreshSession()
+            return tokenPair?.accessToken
+        } catch {
+            if isAuthenticationFailure(error) {
+                clearLocalSession()
+            }
+            throw error
+        }
     }
 
     private func isAuthenticationFailure(_ error: Error) -> Bool {

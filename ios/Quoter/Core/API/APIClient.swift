@@ -27,6 +27,7 @@ final class APIClient {
     private let session: URLSession
     private let requestConfiguration: APIRequestConfiguration
     var accessTokenProvider: (() async -> String?)?
+    var accessTokenRefreshHandler: ((_ forceRefresh: Bool) async throws -> String?)?
 
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -121,12 +122,13 @@ final class APIClient {
         }
         request.timeoutInterval = requestConfiguration.timeoutInterval
 
-        if authenticated, let token = await accessTokenProvider?() {
+        if authenticated, let token = try await accessToken(forceRefresh: false) {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         let maxRetries = retryLimit(for: method)
         let totalAttempts = maxRetries + 1
+        var didRefreshAccessToken = false
         for attempt in 1...totalAttempts {
             do {
                 return try await execute(
@@ -143,6 +145,14 @@ final class APIClient {
                 }
                 await sleepBeforeRetry(attempt: attempt)
             } catch let error as APIError {
+                if authenticated,
+                   case .unauthorized = error,
+                   !didRefreshAccessToken,
+                   let token = try await accessToken(forceRefresh: true) {
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    didRefreshAccessToken = true
+                    continue
+                }
                 guard shouldRetry(apiError: error, method: method, attempt: attempt, maxRetries: maxRetries) else {
                     throw error
                 }
@@ -158,6 +168,14 @@ final class APIClient {
         }
 
         throw APIError.invalidResponse
+    }
+
+    private func accessToken(forceRefresh: Bool) async throws -> String? {
+        if let refreshHandler = accessTokenRefreshHandler,
+           let refreshed = try await refreshHandler(forceRefresh) {
+            return refreshed
+        }
+        return await accessTokenProvider?()
     }
 
     private func execute<Response: Decodable>(
